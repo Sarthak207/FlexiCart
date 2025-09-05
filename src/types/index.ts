@@ -6,7 +6,7 @@ export interface Product {
   rfid_code?: string;
   barcode?: string;
   weight?: number; // Expected weight in grams
-  category: 'fruits' | 'bakery' | 'dairy' | 'beverages' | 'meat' | 'all';
+  category: string;
 }
 
 export interface CartItem {
