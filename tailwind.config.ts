@@ -52,6 +52,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				smartcart: {
+					primary: 'hsl(var(--smartcart-primary))',
+					'primary-dark': 'hsl(var(--smartcart-primary-dark))',
+					success: 'hsl(var(--smartcart-success))',
+					warning: 'hsl(var(--smartcart-warning))',
+					danger: 'hsl(var(--smartcart-danger))',
+					surface: 'hsl(var(--smartcart-surface))',
+					'surface-hover': 'hsl(var(--smartcart-surface-hover))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -67,6 +76,18 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			spacing: {
+				'touch': 'var(--touch-target)',
+				'touch-lg': 'var(--touch-target-large)'
+			},
+			boxShadow: {
+				'card': 'var(--shadow-card)',
+				'button': 'var(--shadow-button)'
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-surface': 'var(--gradient-surface)'
 			},
 			keyframes: {
 				'accordion-down': {

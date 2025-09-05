@@ -17,24 +17,45 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 159 51% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 159 40% 96%;
+    --secondary-foreground: 159 51% 20%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 159 40% 96%;
+    --accent-foreground: 159 51% 20%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 159 51% 52%;
+
+    /* SmartCart specific tokens */
+    --smartcart-primary: 159 51% 52%;
+    --smartcart-primary-dark: 159 51% 42%;
+    --smartcart-success: 142 76% 36%;
+    --smartcart-warning: 45 93% 58%;
+    --smartcart-danger: 0 84% 60%;
+    --smartcart-surface: 0 0% 98%;
+    --smartcart-surface-hover: 0 0% 95%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--smartcart-primary)), hsl(var(--smartcart-primary-dark)));
+    --gradient-surface: linear-gradient(180deg, hsl(var(--background)), hsl(var(--smartcart-surface)));
+
+    /* Shadows */
+    --shadow-card: 0 4px 6px -1px hsl(var(--smartcart-primary) / 0.1);
+    --shadow-button: 0 2px 4px -1px hsl(var(--smartcart-primary) / 0.2);
+
+    /* Touch-friendly sizing */
+    --touch-target: 3rem;
+    --touch-target-large: 4rem;
 
     --radius: 0.5rem;
 
