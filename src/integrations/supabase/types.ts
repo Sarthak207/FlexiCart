@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      products: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string | null
+          id: string
+          image: string | null
+          name: string
+          price: number
+          rfid_code: string | null
+          updated_at: string | null
+          weight: number | null
+        }
+        Insert: {
+          barcode?: string | null
+          category: string
+          created_at?: string | null
+          id?: string
+          image?: string | null
+          name: string
+          price: number
+          rfid_code?: string | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          image?: string | null
+          name?: string
+          price?: number
+          rfid_code?: string | null
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          id: string
+          role: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          items: Json
+          payment_id: string | null
+          payment_method: string | null
+          status: string
+          total: number
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          items: Json
+          payment_id?: string | null
+          payment_method?: string | null
+          status?: string
+          total: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          items?: Json
+          payment_id?: string | null
+          payment_method?: string | null
+          status?: string
+          total?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
