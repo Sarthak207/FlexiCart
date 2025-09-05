@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,77 +7,201 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { mockProducts } from '@/data/mockProducts';
+import { useProducts } from '@/hooks/useProducts';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Product, Transaction } from '@/types';
-import { Plus, Edit, Trash2, Package, BarChart3, Users, Settings as SettingsIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, TrendingUp, DollarSign, Users, Loader2, LogIn } from 'lucide-react';
 
 interface AdminPageProps {
-  transactions?: Transaction[];
+  onNavigate: (tab: string) => void;
 }
 
-const AdminPage = ({ transactions = [] }: AdminPageProps) => {
-  const [products, setProducts] = useState(mockProducts);
-  const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  const [newProduct, setNewProduct] = useState({
+const AdminPage = ({ onNavigate }: AdminPageProps) => {
+  const { user, loading: authLoading } = useAuth();
+  const { products, loading: productsLoading, addProduct, updateProduct, deleteProduct } = useProducts();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const { toast } = useToast();
+
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
     name: '',
-    price: '',
-    category: 'fruits' as Product['category'],
-    weight: '',
-    rfidCode: ''
+    price: 0,
+    image: '',
+    rfid_code: '',
+    barcode: '',
+    weight: 0,
+    category: 'fruits'
   });
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Mock transactions for demo
-  const mockTransactions: Transaction[] = [
-    {
-      id: 'TXN001',
-      items: [
-        { product: mockProducts[0], quantity: 2, addedAt: new Date() },
-        { product: mockProducts[1], quantity: 1, addedAt: new Date() }
-      ],
-      total: 7.97,
-      timestamp: new Date(Date.now() - 86400000),
-      paymentMethod: 'UPI',
-      status: 'completed'
-    },
-    {
-      id: 'TXN002',
-      items: [
-        { product: mockProducts[2], quantity: 1, addedAt: new Date() }
-      ],
-      total: 3.49,
-      timestamp: new Date(Date.now() - 43200000),
-      paymentMethod: 'Card',
-      status: 'completed'
+  // Check if user is admin and fetch transactions
+  useEffect(() => {
+    if (user) {
+      checkAdminStatus();
+      fetchTransactions();
     }
-  ];
+  }, [user]);
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price) return;
-    
-    const product: Product = {
-      id: `product_${Date.now()}`,
-      name: newProduct.name,
-      price: parseFloat(newProduct.price),
-      category: newProduct.category,
-      weight: newProduct.weight ? parseInt(newProduct.weight) : undefined,
-      rfidCode: newProduct.rfidCode || undefined,
-      image: '/placeholder.svg'
-    };
-    
-    setProducts([...products, product]);
-    setNewProduct({ name: '', price: '', category: 'fruits', weight: '', rfidCode: '' });
-    setIsAddingProduct(false);
+  const checkAdminStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) throw error;
+      setIsAdmin(data?.role === 'admin');
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId));
+  const fetchTransactions = async () => {
+    try {
+      setLoadingTransactions(true);
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Transform the data to match our Transaction interface
+      const transformedTransactions: Transaction[] = (data || []).map(item => ({
+        id: item.id,
+        items: item.items as any,
+        total: parseFloat(item.total.toString()),
+        timestamp: new Date(item.created_at),
+        paymentMethod: item.payment_method || 'Unknown',
+        status: item.status as 'pending' | 'completed' | 'failed'
+      }));
+      
+      setTransactions(transformedTransactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoadingTransactions(false);
+    }
   };
 
-  const totalRevenue = mockTransactions.reduce((sum, t) => sum + t.total, 0);
-  const totalTransactions = mockTransactions.length;
-  const avgOrderValue = totalRevenue / totalTransactions || 0;
+  const handleAddProduct = async () => {
+    if (newProduct.name && newProduct.price > 0) {
+      try {
+        await addProduct(newProduct);
+        setNewProduct({
+          name: '',
+          price: 0,
+          image: '',
+          rfid_code: '',
+          barcode: '',
+          weight: 0,
+          category: 'fruits'
+        });
+        toast({
+          title: "Product added",
+          description: "Product has been added successfully.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add product.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (editingProduct) {
+      try {
+        await updateProduct(editingProduct.id, editingProduct);
+        setEditingProduct(null);
+        toast({
+          title: "Product updated",
+          description: "Product has been updated successfully.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update product.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await deleteProduct(productId);
+      toast({
+        title: "Product deleted",
+        description: "Product has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-6">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-lg">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-6">
+        <div className="max-w-2xl mx-auto text-center py-16">
+          <LogIn className="h-24 w-24 text-muted-foreground mx-auto mb-6" />
+          <h1 className="text-3xl font-bold text-primary mb-4">Authentication Required</h1>
+          <p className="text-muted-foreground mb-8">
+            Please sign in to access the admin panel.
+          </p>
+          <Button onClick={() => onNavigate('auth')} className="min-h-touch">
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-6">
+        <div className="max-w-2xl mx-auto text-center py-16">
+          <Package className="h-24 w-24 text-muted-foreground mx-auto mb-6" />
+          <h1 className="text-3xl font-bold text-primary mb-4">Access Denied</h1>
+          <p className="text-muted-foreground mb-8">
+            You don't have admin privileges to access this panel.
+          </p>
+          <Button onClick={() => onNavigate('home')} className="min-h-touch">
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const totalRevenue = transactions.reduce((sum, t) => sum + t.total, 0);
+  const totalTransactions = transactions.length;
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
@@ -89,22 +213,20 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
             <p className="text-muted-foreground mt-1">Manage your SmartCart system</p>
           </div>
           <Badge variant="outline" className="text-smartcart-success border-smartcart-success">
-            Store Manager Dashboard
+            Admin Dashboard
           </Badge>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -124,7 +246,7 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                       <p className="text-sm text-muted-foreground">Total Revenue</p>
                       <p className="text-2xl font-bold text-smartcart-success">${totalRevenue.toFixed(2)}</p>
                     </div>
-                    <BarChart3 className="h-8 w-8 text-smartcart-success" />
+                    <DollarSign className="h-8 w-8 text-smartcart-success" />
                   </div>
                 </CardContent>
               </Card>
@@ -136,76 +258,28 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                       <p className="text-sm text-muted-foreground">Transactions</p>
                       <p className="text-2xl font-bold text-smartcart-warning">{totalTransactions}</p>
                     </div>
-                    <Users className="h-8 w-8 text-smartcart-warning" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Avg Order</p>
-                      <p className="text-2xl font-bold text-smartcart-danger">${avgOrderValue.toFixed(2)}</p>
-                    </div>
-                    <SettingsIcon className="h-8 w-8 text-smartcart-danger" />
+                    <TrendingUp className="h-8 w-8 text-smartcart-warning" />
                   </div>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>Latest customer purchases</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockTransactions.slice(0, 5).map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell className="font-medium">{transaction.id}</TableCell>
-                        <TableCell>{transaction.items.length} items</TableCell>
-                        <TableCell>${transaction.total.toFixed(2)}</TableCell>
-                        <TableCell>{transaction.paymentMethod}</TableCell>
-                        <TableCell>
-                          <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>
-                            {transaction.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Products Tab */}
           <TabsContent value="products" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Product Management</h2>
-              <Button onClick={() => setIsAddingProduct(true)}>
+              <Button onClick={() => setEditingProduct({} as Product)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Product
               </Button>
             </div>
 
-            {/* Add Product Form */}
-            {isAddingProduct && (
+            {/* Add/Edit Product Form */}
+            {editingProduct && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Add New Product</CardTitle>
+                  <CardTitle>{editingProduct.id ? 'Edit Product' : 'Add New Product'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -213,8 +287,8 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                       <Label htmlFor="name">Product Name</Label>
                       <Input
                         id="name"
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                        value={editingProduct.name || ''}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                         placeholder="Enter product name"
                       />
                     </div>
@@ -224,14 +298,14 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                         id="price"
                         type="number"
                         step="0.01"
-                        value={newProduct.price}
-                        onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                        value={editingProduct.price || ''}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) || 0 })}
                         placeholder="0.00"
                       />
                     </div>
                     <div>
                       <Label htmlFor="category">Category</Label>
-                      <Select value={newProduct.category} onValueChange={(value: Product['category']) => setNewProduct({ ...newProduct, category: value })}>
+                      <Select value={editingProduct.category} onValueChange={(value: Product['category']) => setEditingProduct({ ...editingProduct, category: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -249,8 +323,8 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                       <Input
                         id="weight"
                         type="number"
-                        value={newProduct.weight}
-                        onChange={(e) => setNewProduct({ ...newProduct, weight: e.target.value })}
+                        value={editingProduct.weight || ''}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, weight: parseInt(e.target.value) || 0 })}
                         placeholder="Weight in grams"
                       />
                     </div>
@@ -258,15 +332,17 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                       <Label htmlFor="rfid">RFID Code</Label>
                       <Input
                         id="rfid"
-                        value={newProduct.rfidCode}
-                        onChange={(e) => setNewProduct({ ...newProduct, rfidCode: e.target.value })}
-                        placeholder="RFID identifier"
+                        value={editingProduct.rfid_code || ''}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, rfid_code: e.target.value })}
+                        placeholder="RF001"
                       />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleAddProduct}>Add Product</Button>
-                    <Button variant="outline" onClick={() => setIsAddingProduct(false)}>Cancel</Button>
+                    <Button onClick={editingProduct.id ? handleUpdateProduct : handleAddProduct}>
+                      {editingProduct.id ? 'Update' : 'Add'} Product
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingProduct(null)}>Cancel</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -295,10 +371,10 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                         </TableCell>
                         <TableCell>${product.price.toFixed(2)}</TableCell>
                         <TableCell>{product.weight}g</TableCell>
-                        <TableCell>{product.rfidCode || 'N/A'}</TableCell>
+                        <TableCell>{product.rfid_code}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
@@ -330,97 +406,43 @@ const AdminPage = ({ transactions = [] }: AdminPageProps) => {
                     <TableRow>
                       <TableHead>ID</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Items</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell className="font-medium">{transaction.id}</TableCell>
-                        <TableCell>{transaction.timestamp.toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            {transaction.items.map((item, idx) => (
-                              <div key={idx} className="text-sm">
-                                {item.product.name} × {item.quantity}
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>${transaction.total.toFixed(2)}</TableCell>
-                        <TableCell>{transaction.paymentMethod}</TableCell>
-                        <TableCell>
-                          <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>
-                            {transaction.status}
-                          </Badge>
+                    {loadingTransactions ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : transactions.length > 0 ? (
+                      transactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">{transaction.id.slice(0, 8)}...</TableCell>
+                          <TableCell>{transaction.timestamp.toLocaleDateString()}</TableCell>
+                          <TableCell>${transaction.total.toFixed(2)}</TableCell>
+                          <TableCell>{transaction.paymentMethod}</TableCell>
+                          <TableCell>
+                            <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>
+                              {transaction.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No transactions found
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <h2 className="text-2xl font-bold">System Settings</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Hardware Configuration</CardTitle>
-                  <CardDescription>Configure connected devices</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label>RFID Scanner</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-3 h-3 bg-smartcart-success rounded-full"></div>
-                      <span className="text-sm">Connected - Port COM3</span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Load Cells</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-3 h-3 bg-smartcart-success rounded-full"></div>
-                      <span className="text-sm">Active - 4 sensors detected</span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Pi Camera</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-3 h-3 bg-smartcart-success rounded-full"></div>
-                      <span className="text-sm">Ready - 1080p mode</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Store Configuration</CardTitle>
-                  <CardDescription>Basic store settings</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="storeName">Store Name</Label>
-                    <Input id="storeName" value="SmartCart Store" readOnly />
-                  </div>
-                  <div>
-                    <Label htmlFor="taxRate">Tax Rate (%)</Label>
-                    <Input id="taxRate" type="number" value="8" readOnly />
-                  </div>
-                  <div>
-                    <Label htmlFor="currency">Currency</Label>
-                    <Input id="currency" value="USD" readOnly />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
       </div>

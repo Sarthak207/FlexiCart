@@ -6,7 +6,7 @@ export const mockProducts: Product[] = [
     name: 'Red Apples',
     price: 2.99,
     image: '/placeholder.svg',
-    rfidCode: 'RF001',
+    rfid_code: 'RF001',
     weight: 150,
     category: 'fruits'
   },
@@ -15,7 +15,7 @@ export const mockProducts: Product[] = [
     name: 'Whole Wheat Bread',
     price: 1.99,
     image: '/placeholder.svg',
-    rfidCode: 'RF002',
+    rfid_code: 'RF002',
     weight: 400,
     category: 'bakery'
   },
@@ -24,7 +24,7 @@ export const mockProducts: Product[] = [
     name: 'Fresh Milk',
     price: 3.49,
     image: '/placeholder.svg',
-    rfidCode: 'RF003',
+    rfid_code: 'RF003',
     weight: 1000,
     category: 'dairy'
   },
@@ -33,7 +33,7 @@ export const mockProducts: Product[] = [
     name: 'Bananas',
     price: 1.29,
     image: '/placeholder.svg',
-    rfidCode: 'RF004',
+    rfid_code: 'RF004',
     weight: 120,
     category: 'fruits'
   },
@@ -42,7 +42,7 @@ export const mockProducts: Product[] = [
     name: 'Cheddar Cheese',
     price: 4.99,
     image: '/placeholder.svg',
-    rfidCode: 'RF005',
+    rfid_code: 'RF005',
     weight: 250,
     category: 'dairy'
   },
@@ -51,7 +51,7 @@ export const mockProducts: Product[] = [
     name: 'Croissants',
     price: 3.99,
     image: '/placeholder.svg',
-    rfidCode: 'RF006',
+    rfid_code: 'RF006',
     weight: 180,
     category: 'bakery'
   },
@@ -60,7 +60,7 @@ export const mockProducts: Product[] = [
     name: 'Orange Juice',
     price: 2.79,
     image: '/placeholder.svg',
-    rfidCode: 'RF007',
+    rfid_code: 'RF007',
     weight: 950,
     category: 'beverages'
   },
@@ -69,7 +69,7 @@ export const mockProducts: Product[] = [
     name: 'Chicken Breast',
     price: 7.99,
     image: '/placeholder.svg',
-    rfidCode: 'RF008',
+    rfid_code: 'RF008',
     weight: 450,
     category: 'meat'
   }

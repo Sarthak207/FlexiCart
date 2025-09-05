@@ -3,7 +3,7 @@ export interface Product {
   name: string;
   price: number;
   image: string;
-  rfidCode?: string;
+  rfid_code?: string;
   barcode?: string;
   weight?: number; // Expected weight in grams
   category: 'fruits' | 'bakery' | 'dairy' | 'beverages' | 'meat' | 'all';
