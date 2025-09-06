@@ -218,9 +218,11 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="maps">Store Maps</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
           </TabsList>
 
@@ -391,6 +393,48 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Store Maps Tab */}
+          <TabsContent value="maps" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Store Maps Management</h2>
+              <Button onClick={() => onNavigate('store-map')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Manage Maps
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Store Maps</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create and manage your store layouts with product positions
+                  </p>
+                  <Button onClick={() => onNavigate('store-map')}>
+                    Open Map Editor
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <h2 className="text-2xl font-bold">User Management</h2>
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">User Analytics</h3>
+                  <p className="text-muted-foreground">
+                    User management features will be available here
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
