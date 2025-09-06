@@ -1,0 +1,8 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="#F3F4F6"/>
+  <ellipse cx="100" cy="100" rx="60" ry="40" fill="#F3F4F6"/>
+  <path d="M60 100C60 100 80 80 100 80C120 80 140 100 140 100C140 100 120 120 100 120C80 120 60 100 60 100Z" fill="#E5E7EB"/>
+  <path d="M70 90C70 90 80 85 90 85C100 85 110 90 110 90" stroke="#9CA3AF" stroke-width="2" fill="none"/>
+  <path d="M70 110C70 110 80 105 90 105C100 105 110 110 110 110" stroke="#9CA3AF" stroke-width="2" fill="none"/>
+  <text x="100" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Chicken Breast</text>
+</svg>

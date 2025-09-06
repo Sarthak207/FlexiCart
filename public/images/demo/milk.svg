@@ -1,0 +1,9 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="#F3F4F6"/>
+  <rect x="60" y="40" width="80" height="120" rx="10" fill="#F8FAFC"/>
+  <rect x="65" y="45" width="70" height="110" rx="5" fill="#E2E8F0"/>
+  <path d="M70 50L130 50L130 60L70 60Z" fill="#1E40AF"/>
+  <path d="M70 70L130 70L130 80L70 80Z" fill="#1E40AF"/>
+  <path d="M70 90L130 90L130 100L70 100Z" fill="#1E40AF"/>
+  <text x="100" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Fresh Milk</text>
+</svg>

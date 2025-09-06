@@ -1,0 +1,21 @@
+{
+  "name": "smart-cart-rfid-reader",
+  "version": "1.0.0",
+  "description": "RFID Reader integration for Smart Cart",
+  "main": "rfid_reader_node.js",
+  "scripts": {
+    "start": "node rfid_reader_node.js",
+    "dev": "nodemon rfid_reader_node.js"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0",
+    "@serialport/parser-readline": "^12.0.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": ["rfid", "smart-cart", "hardware", "iot"],
+  "author": "Smart Cart Team",
+  "license": "MIT"
+}

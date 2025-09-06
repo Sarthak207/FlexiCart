@@ -1,0 +1,6 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="#F3F4F6"/>
+  <path d="M60 100C60 100 70 80 90 80C110 80 120 100 120 100C120 100 130 120 130 140C130 160 120 180 120 180C120 180 110 160 110 140C110 120 100 100 100 100C100 100 90 80 80 80C70 80 60 100 60 100Z" fill="#D97706"/>
+  <path d="M60 100C60 100 70 80 90 80C110 80 120 100 120 100C120 100 130 120 130 140C130 160 120 180 120 180C120 180 110 160 110 140C110 120 100 100 100 100C100 100 90 80 80 80C70 80 60 100 60 100Z" stroke="#B45309" stroke-width="2" fill="none"/>
+  <text x="100" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">Croissants</text>
+</svg>

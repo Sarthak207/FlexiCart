@@ -8,11 +8,13 @@ import { Scale, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 interface WeightCheckPageProps {
   cartItems: CartItem[];
   onNavigate: (tab: string) => void;
+  currentWeight?: number;
+  weightStable?: boolean;
 }
 
-const WeightCheckPage = ({ cartItems, onNavigate }: WeightCheckPageProps) => {
-  const [currentWeight, setCurrentWeight] = useState(0);
-  const [isStable, setIsStable] = useState(false);
+const WeightCheckPage = ({ cartItems, onNavigate, currentWeight: propWeight, weightStable: propStable }: WeightCheckPageProps) => {
+  const [currentWeight, setCurrentWeight] = useState(propWeight || 0);
+  const [isStable, setIsStable] = useState(propStable || false);
   const [isCalibrating, setIsCalibrating] = useState(false);
 
   const expectedWeight = cartItems.reduce((sum, item) => 
@@ -23,19 +25,31 @@ const WeightCheckPage = ({ cartItems, onNavigate }: WeightCheckPageProps) => {
   const tolerance = expectedWeight * 0.05; // 5% tolerance
   const isWeightMatch = weightDifference <= tolerance;
 
-  // Simulate weight sensor readings
+  // Use real-time weight data if available, otherwise simulate
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isCalibrating) {
-        // Simulate fluctuating weight readings
-        const baseWeight = expectedWeight + (Math.random() - 0.5) * 100;
-        setCurrentWeight(Math.max(0, baseWeight));
-        setIsStable(Math.random() > 0.3); // 70% chance of stable reading
-      }
-    }, 1000);
+    if (propWeight !== undefined) {
+      setCurrentWeight(propWeight);
+    }
+    if (propStable !== undefined) {
+      setIsStable(propStable);
+    }
+  }, [propWeight, propStable]);
 
-    return () => clearInterval(interval);
-  }, [expectedWeight, isCalibrating]);
+  // Simulate weight sensor readings if no real-time data
+  useEffect(() => {
+    if (propWeight === undefined) {
+      const interval = setInterval(() => {
+        if (!isCalibrating) {
+          // Simulate fluctuating weight readings
+          const baseWeight = expectedWeight + (Math.random() - 0.5) * 100;
+          setCurrentWeight(Math.max(0, baseWeight));
+          setIsStable(Math.random() > 0.3); // 70% chance of stable reading
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [expectedWeight, isCalibrating, propWeight]);
 
   const handleCalibrate = async () => {
     setIsCalibrating(true);

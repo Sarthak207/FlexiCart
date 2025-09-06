@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ interface CheckoutPageProps {
 }
 
 const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPageProps) => {
-  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const { user } = useAuth();
@@ -28,12 +28,55 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
 
+  // Handle Stripe success/cancel redirects
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const sessionId = urlParams.get('session_id');
+    const canceled = urlParams.get('canceled');
+
+    if (success === 'true' && sessionId) {
+      // Verify payment and show success
+      verifyStripePayment(sessionId);
+    } else if (canceled === 'true') {
+      toast({
+        title: "Payment Canceled",
+        description: "Your payment was canceled. You can try again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const verifyStripePayment = async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-stripe-payment', {
+        body: { sessionId }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setIsComplete(true);
+        setTimeout(() => {
+          onCheckoutComplete('stripe-' + sessionId);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      toast({
+        title: "Payment Verification Failed",
+        description: "Please contact support if you were charged.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const paymentMethods = [
     {
-      id: 'razorpay',
-      name: 'Razorpay',
+      id: 'stripe',
+      name: 'Stripe',
       icon: CreditCard,
-      description: 'Secure payment gateway - Cards, UPI, Wallets'
+      description: 'Secure payment gateway - Cards, Apple Pay, Google Pay'
     },
     {
       id: 'cash',
@@ -90,63 +133,27 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
       return;
     }
 
-    // Handle Razorpay payment
+    // Handle Stripe payment
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-payment', {
+      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: {
-          amount: total,
+          amount: Math.round(total * 100), // Convert to cents
           cartItems: cartItems,
-          currency: 'INR'
+          isSubscription: false
         }
       });
 
       if (error) throw error;
 
-      // Load Razorpay script and show payment interface
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => {
-        const options = {
-          key: 'YOUR_RAZORPAY_KEY_ID', // Replace with your Razorpay key ID
-          amount: data.amount,
-          currency: data.currency,
-          order_id: data.order_id,
-          name: 'SmartCart',
-          description: 'Smart Shopping Cart Payment',
-          handler: async (response: any) => {
-            // Verify payment
-            const { error: verifyError } = await supabase.functions.invoke('verify-payment', {
-              body: {
-                payment_id: response.razorpay_payment_id,
-                order_id: response.razorpay_order_id,
-                signature: response.razorpay_signature,
-              }
-            });
-
-            if (!verifyError) {
-              setIsComplete(true);
-              setTimeout(() => {
-                onCheckoutComplete(data.transaction_id);
-              }, 2000);
-            }
-            setIsProcessing(false);
-          },
-          prefill: {
-            email: user.email,
-          },
-          theme: {
-            color: '#10b981',
-          },
-        };
-
-        const razorpay = new (window as any).Razorpay(options);
-        razorpay.open();
-        setIsProcessing(false);
-      };
-      document.body.appendChild(script);
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
     } catch (error) {
-      console.error('Error creating payment:', error);
+      console.error('Error creating Stripe checkout:', error);
       toast({
         title: "Error",
         description: "Failed to initiate payment. Please try again.",
@@ -217,10 +224,10 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
             </Card>
 
             {/* Payment Details */}
-            {paymentMethod === 'razorpay' && (
+            {paymentMethod === 'stripe' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Razorpay Payment</CardTitle>
+                  <CardTitle>Stripe Payment</CardTitle>
                   <CardDescription>Secure payment with multiple options</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -228,10 +235,10 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
                     <CreditCard className="h-32 w-32 mx-auto mb-4 text-primary" />
                     <p className="text-lg font-semibold mb-2">Secure Payment Gateway</p>
                     <p className="text-muted-foreground">
-                      Pay securely using Cards, UPI, Net Banking, or Wallets
+                      Pay securely using Cards, Apple Pay, Google Pay, or other methods
                     </p>
                     <p className="text-lg font-bold mt-4">
-                      Total: ₹{(total * 75).toFixed(2)}
+                      Total: ${total.toFixed(2)}
                     </p>
                   </div>
                 </CardContent>
@@ -249,7 +256,7 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
                     <Smartphone className="h-32 w-32 mx-auto mb-4 text-primary" />
                     <p className="text-lg font-semibold mb-2">Cash Payment</p>
                     <p className="text-muted-foreground">
-                      Pay ₹{(total * 75).toFixed(2)} in cash when your order is delivered
+                      Pay ${total.toFixed(2)} in cash when your order is delivered
                     </p>
                   </div>
                 </CardContent>

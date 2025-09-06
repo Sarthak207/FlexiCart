@@ -14,13 +14,33 @@ import StoreMapPage from '@/components/pages/StoreMapPage';
 import { Toaster } from '@/components/ui/toaster';
 import { CartItem, Product } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
+import { useCartUpdates } from '@/hooks/useCartUpdates';
 
 const Index = () => {
   const [currentTab, setCurrentTab] = useState('home');
   const { user, loading } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [currentWeight, setCurrentWeight] = useState(0);
+  const [weightStable, setWeightStable] = useState(false);
   const { products } = useProducts();
+
+  // Real-time cart updates
+  const {
+    cartItems: realtimeCartItems,
+    currentWeight: realtimeWeight,
+    weightStable: realtimeWeightStable,
+    isConnected: wsConnected,
+    error: wsError
+  } = useCartUpdates({
+    userId: user?.id || 'demo_user',
+    onCartUpdate: (items) => {
+      setCartItems(items);
+    },
+    onWeightUpdate: (weight, stable) => {
+      setCurrentWeight(weight);
+      setWeightStable(stable);
+    }
+  });
 
   // Handle URL params for payment success
   useEffect(() => {
@@ -52,16 +72,19 @@ const Index = () => {
     }
   };
 
-  // Simulate weight sensor data
+  // Use real-time weight data if available, otherwise simulate
   useEffect(() => {
-    const interval = setInterval(() => {
-      const cartWeight = cartItems.reduce((sum, item) => sum + (item.product.weight || 0) * item.quantity, 0);
-      const variation = (Math.random() - 0.5) * 50; // ±25g variation
-      setCurrentWeight(cartWeight + variation);
-    }, 1000);
+    if (!wsConnected) {
+      // Fallback to simulation if WebSocket not connected
+      const interval = setInterval(() => {
+        const cartWeight = cartItems.reduce((sum, item) => sum + (item.product.weight || 0) * item.quantity, 0);
+        const variation = (Math.random() - 0.5) * 50; // ±25g variation
+        setCurrentWeight(cartWeight + variation);
+      }, 1000);
 
-    return () => clearInterval(interval);
-  }, [cartItems]);
+      return () => clearInterval(interval);
+    }
+  }, [cartItems, wsConnected]);
 
   const handleAddToCart = (productId: string) => {
     const product = products.find(p => p.id === productId);
@@ -146,6 +169,8 @@ const Index = () => {
           <WeightCheckPage
             cartItems={cartItems}
             onNavigate={setCurrentTab}
+            currentWeight={currentWeight}
+            weightStable={weightStable}
           />
         )}
         {currentTab === 'checkout' && (
