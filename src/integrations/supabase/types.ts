@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      product_positions: {
+        Row: {
+          created_at: string
+          id: string
+          map_id: string
+          product_id: string
+          shelf_number: string | null
+          updated_at: string
+          x_position: number
+          y_position: number
+          zone_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          map_id: string
+          product_id: string
+          shelf_number?: string | null
+          updated_at?: string
+          x_position: number
+          y_position: number
+          zone_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          map_id?: string
+          product_id?: string
+          shelf_number?: string | null
+          updated_at?: string
+          x_position?: number
+          y_position?: number
+          zone_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_positions_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "store_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_positions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -21,6 +96,7 @@ export type Database = {
           created_at: string | null
           id: string
           image: string | null
+          map_position_id: string | null
           name: string
           price: number
           rfid_code: string | null
@@ -33,6 +109,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           image?: string | null
+          map_position_id?: string | null
           name: string
           price: number
           rfid_code?: string | null
@@ -45,13 +122,22 @@ export type Database = {
           created_at?: string | null
           id?: string
           image?: string | null
+          map_position_id?: string | null
           name?: string
           price?: number
           rfid_code?: string | null
           updated_at?: string | null
           weight?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_map_position_id_fkey"
+            columns: ["map_position_id"]
+            isOneToOne: false
+            referencedRelation: "product_positions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -80,6 +166,84 @@ export type Database = {
         }
         Relationships: []
       }
+      store_maps: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          layout_data: Json
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          layout_data?: Json
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          layout_data?: Json
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_type: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           created_at: string | null
@@ -87,7 +251,9 @@ export type Database = {
           items: Json
           payment_id: string | null
           payment_method: string | null
+          payment_status: string | null
           status: string
+          subscription_id: string | null
           total: number
           updated_at: string | null
           user_id: string | null
@@ -98,7 +264,9 @@ export type Database = {
           items: Json
           payment_id?: string | null
           payment_method?: string | null
+          payment_status?: string | null
           status?: string
+          subscription_id?: string | null
           total: number
           updated_at?: string | null
           user_id?: string | null
@@ -109,12 +277,22 @@ export type Database = {
           items?: Json
           payment_id?: string | null
           payment_method?: string | null
+          payment_status?: string | null
           status?: string
+          subscription_id?: string | null
           total?: number
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
