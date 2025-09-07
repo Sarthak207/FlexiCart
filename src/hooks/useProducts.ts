@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
+import { mockProducts } from '@/data/mockProducts';
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,9 +18,12 @@ export const useProducts = () => {
 
       if (error) throw error;
 
-      setProducts(data || []);
+      // Use database products if available, otherwise fall back to mock products
+      setProducts(data && data.length > 0 ? data : mockProducts);
     } catch (err) {
       console.error('Error fetching products:', err);
+      // Fall back to mock products on error
+      setProducts(mockProducts);
       setError(err.message);
     } finally {
       setLoading(false);

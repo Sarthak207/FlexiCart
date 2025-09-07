@@ -7,12 +7,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useProducts } from '@/hooks/useProducts';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Product, Transaction } from '@/types';
-import { Plus, Edit, Trash2, Package, TrendingUp, DollarSign, Users, Loader2, LogIn } from 'lucide-react';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Package, 
+  TrendingUp, 
+  DollarSign, 
+  Users, 
+  Loader2, 
+  LogIn,
+  ShoppingCart,
+  Map,
+  BarChart3,
+  Calendar,
+  Clock,
+  Star,
+  AlertCircle,
+  CheckCircle,
+  XCircle
+} from 'lucide-react';
 
 interface AdminPageProps {
   onNavigate: (tab: string) => void;
@@ -24,6 +44,14 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [analytics, setAnalytics] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    conversionRate: 0,
+    averageOrderValue: 0,
+    topProducts: [] as { product: Product; sales: number }[],
+    recentActivity: [] as any[]
+  });
   const { toast } = useToast();
 
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
@@ -37,11 +65,12 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
   });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Check if user is admin and fetch transactions
+  // Check if user is admin and fetch data
   useEffect(() => {
     if (user) {
       checkAdminStatus();
       fetchTransactions();
+      fetchAnalytics();
     }
   }, [user]);
 
@@ -86,6 +115,33 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
       console.error('Error fetching transactions:', error);
     } finally {
       setLoadingTransactions(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      // Mock analytics data - in a real app, this would come from the database
+      const mockAnalytics = {
+        totalUsers: 1247,
+        activeUsers: 892,
+        conversionRate: 23.5,
+        averageOrderValue: 45.67,
+        topProducts: products.slice(0, 5).map((product, index) => ({
+          product,
+          sales: Math.floor(Math.random() * 100) + 10
+        })),
+        recentActivity: [
+          { type: 'transaction', message: 'New order completed', time: '2 min ago', amount: 23.45 },
+          { type: 'user', message: 'New user registered', time: '5 min ago' },
+          { type: 'product', message: 'Product updated', time: '12 min ago', product: 'Red Apples' },
+          { type: 'transaction', message: 'Payment failed', time: '18 min ago', amount: 67.89 },
+          { type: 'user', message: 'User logged in', time: '25 min ago' }
+        ]
+      };
+      
+      setAnalytics(mockAnalytics);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
     }
   };
 
@@ -228,13 +284,15 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Total Products</p>
                       <p className="text-2xl font-bold text-primary">{products.length}</p>
+                      <p className="text-xs text-muted-foreground">+2 this week</p>
                     </div>
                     <Package className="h-8 w-8 text-primary" />
                   </div>
@@ -247,6 +305,7 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
                     <div>
                       <p className="text-sm text-muted-foreground">Total Revenue</p>
                       <p className="text-2xl font-bold text-smartcart-success">${totalRevenue.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">+12.5% from last month</p>
                     </div>
                     <DollarSign className="h-8 w-8 text-smartcart-success" />
                   </div>
@@ -257,10 +316,131 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Transactions</p>
-                      <p className="text-2xl font-bold text-smartcart-warning">{totalTransactions}</p>
+                      <p className="text-sm text-muted-foreground">Active Users</p>
+                      <p className="text-2xl font-bold text-smartcart-warning">{analytics.activeUsers}</p>
+                      <p className="text-xs text-muted-foreground">{analytics.totalUsers} total users</p>
                     </div>
-                    <TrendingUp className="h-8 w-8 text-smartcart-warning" />
+                    <Users className="h-8 w-8 text-smartcart-warning" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                      <p className="text-2xl font-bold text-smartcart-primary">{analytics.conversionRate}%</p>
+                      <p className="text-xs text-muted-foreground">+3.2% from last week</p>
+                    </div>
+                    <BarChart3 className="h-8 w-8 text-smartcart-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts and Analytics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Products */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5" />
+                    Top Products
+                  </CardTitle>
+                  <CardDescription>Best selling products this month</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {analytics.topProducts.map((item, index) => (
+                      <div key={item.product.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{item.product.name}</p>
+                            <p className="text-sm text-muted-foreground">{item.product.category}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">{item.sales} sales</p>
+                          <p className="text-sm text-muted-foreground">${item.product.price}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
+                  <CardDescription>Latest system activities</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {analytics.recentActivity.map((activity, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          activity.type === 'transaction' ? 'bg-smartcart-success' :
+                          activity.type === 'user' ? 'bg-smartcart-primary' :
+                          'bg-smartcart-warning'
+                        }`} />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{activity.message}</p>
+                          <p className="text-xs text-muted-foreground">{activity.time}</p>
+                        </div>
+                        {activity.amount && (
+                          <p className="text-sm font-bold text-smartcart-success">
+                            ${activity.amount}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Performance Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Order Completion Rate</p>
+                      <span className="text-sm text-smartcart-success">94.2%</span>
+                    </div>
+                    <Progress value={94.2} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Customer Satisfaction</p>
+                      <span className="text-sm text-smartcart-success">4.8/5</span>
+                    </div>
+                    <Progress value={96} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">System Uptime</p>
+                      <span className="text-sm text-smartcart-success">99.9%</span>
+                    </div>
+                    <Progress value={99.9} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -425,16 +605,119 @@ const AdminPage = ({ onNavigate }: AdminPageProps) => {
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-6">
-            <h2 className="text-2xl font-bold">User Management</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">User Management</h2>
+              <Button variant="outline">
+                <Users className="h-4 w-4 mr-2" />
+                Export Users
+              </Button>
+            </div>
+
+            {/* User Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Users</p>
+                      <p className="text-2xl font-bold">{analytics.totalUsers}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Active Users</p>
+                      <p className="text-2xl font-bold text-smartcart-success">{analytics.activeUsers}</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-smartcart-success" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">New This Week</p>
+                      <p className="text-2xl font-bold text-smartcart-warning">47</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-smartcart-warning" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Avg. Order Value</p>
+                      <p className="text-2xl font-bold text-smartcart-primary">${analytics.averageOrderValue}</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-smartcart-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* User List */}
             <Card>
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">User Analytics</h3>
-                  <p className="text-muted-foreground">
-                    User management features will be available here
-                  </p>
-                </div>
+              <CardHeader>
+                <CardTitle>User List</CardTitle>
+                <CardDescription>Manage user accounts and permissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Active</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Mock user data */}
+                    {[
+                      { id: '1', name: 'John Doe', email: 'john@example.com', role: 'admin', status: 'active', lastActive: '2 hours ago' },
+                      { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'user', status: 'active', lastActive: '1 day ago' },
+                      { id: '3', name: 'Bob Johnson', email: 'bob@example.com', role: 'user', status: 'inactive', lastActive: '1 week ago' },
+                      { id: '4', name: 'Alice Brown', email: 'alice@example.com', role: 'user', status: 'active', lastActive: '3 hours ago' },
+                    ].map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
+                            {user.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{user.lastActive}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>

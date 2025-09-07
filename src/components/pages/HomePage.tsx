@@ -100,8 +100,18 @@ const HomePage = ({ cartItems, onAddToCart, onNavigate }: HomePageProps) => {
             return (
               <Card key={product.id} className="group hover:shadow-lg transition-all duration-200">
                 <CardContent className="p-4">
-                  <div className="aspect-square bg-gradient-to-br from-smartcart-surface to-muted rounded-lg mb-4 flex items-center justify-center">
-                    <Package className="h-12 w-12 text-muted-foreground" />
+                  <div className="aspect-square bg-gradient-to-br from-smartcart-surface to-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <Package className="h-12 w-12 text-muted-foreground hidden" />
                   </div>
                   
                   <div className="space-y-2">

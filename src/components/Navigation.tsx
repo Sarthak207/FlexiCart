@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { ShoppingCart, Scan, Home, Scale, CreditCard, Settings, LogOut, User, BarChart3, Map } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavigationProps {
   currentTab: string;
@@ -78,6 +79,8 @@ const Navigation = ({ currentTab, onNavigate, cartItemsCount, user }: Navigation
             </>
           )}
 
+          <ThemeToggle />
+          
           {user ? (
             <div className="relative">
               <Button
