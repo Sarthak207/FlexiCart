@@ -1,0 +1,25 @@
+{
+  "name": "smart-cart-barcode-scanner",
+  "version": "1.0.0",
+  "description": "Barcode Scanner integration for Smart Cart (Caper AI Style)",
+  "main": "barcode_scanner_node.js",
+  "scripts": {
+    "start": "node barcode_scanner_node.js",
+    "dev": "nodemon barcode_scanner_node.js",
+    "test": "node test_scanner.js"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0",
+    "@serialport/parser-readline": "^12.0.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": ["barcode", "scanner", "smart-cart", "hardware", "iot", "caper"],
+  "author": "Smart Cart Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

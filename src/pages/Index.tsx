@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import HomePage from '@/components/pages/HomePage';
+import CaperStyleHomePage from '@/components/pages/CaperStyleHomePage';
 import ScanPage from '@/components/pages/ScanPage';
 import CartPage from '@/components/pages/CartPage';
 import WeightCheckPage from '@/components/pages/WeightCheckPage';
@@ -145,7 +146,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="pb-20">
         {currentTab === 'home' && (
-          <HomePage
+          <CaperStyleHomePage
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
             onNavigate={setCurrentTab}
