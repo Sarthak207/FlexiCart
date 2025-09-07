@@ -1,8 +1,8 @@
-# Smart Cart Setup Guide
+# Smart Cart Complete Hardware Integration Guide
 
-This guide will walk you through setting up the complete Smart Cart system with all hardware integrations.
+This comprehensive guide will walk you through setting up the complete Smart Cart system with all hardware integrations, from basic software setup to full hardware deployment on Raspberry Pi.
 
-## 🎯 Quick Start (5 minutes)
+## 🎯 Quick Start (Software Only - 5 minutes)
 
 ### 1. Frontend Setup
 ```bash
@@ -25,365 +25,731 @@ chmod +x start_backend.sh
 ./start_backend.sh
 ```
 
-### 3. Test the System
-1. Open http://localhost:8080 in your browser
-2. Add products to cart manually
-3. Test checkout with Stripe test cards
+### 3. Test the System (Software Only)
+1. Open http://localhost:5173 in your browser
+2. Add products to cart manually via the UI
+3. Test checkout with Stripe test cards (use 4242 4242 4242 4242)
 
-## 🔧 Complete Hardware Setup
+## 🔧 Complete Hardware Integration Setup
 
 ### Prerequisites
 
 #### Software Requirements
 - **Node.js 18+**: [Download](https://nodejs.org/)
 - **Python 3.8+**: [Download](https://python.org/)
-- **Arduino IDE**: [Download](https://arduino.cc/) (for ESP32)
+- **Arduino IDE**: [Download](https://arduino.cc/) (for ESP32 load cell)
 - **Git**: [Download](https://git-scm.com/)
 
 #### Hardware Requirements
-- **Raspberry Pi 4** (for RFID and Camera)
-- **ESP32 Dev Board** (for Load Cell)
+- **Raspberry Pi 4** (4GB+ RAM recommended)
+- **MicroSD Card** (32GB+ Class 10)
 - **MFRC522 RFID Reader Module**
-- **Pi Camera Module v2**
+- **Pi Camera Module v2 or v3**
+- **ESP32 Development Board** (for load cell)
 - **HX711 Load Cell Amplifier**
-- **Load Cell (5kg capacity)**
-- **Jumper Wires and Breadboard**
+- **Load Cell** (5kg capacity recommended)
+- **Breadboard and Jumper Wires**
+- **LED indicators** (optional)
+- **Buzzer** (optional)
 
-### Step 1: Raspberry Pi Setup
+## 📋 Step 1: Raspberry Pi Configuration
 
-#### 1.1 Install Raspberry Pi OS
+### 1.1 Install Raspberry Pi OS
 1. Download [Raspberry Pi Imager](https://rpi.org/imager)
-2. Flash Raspberry Pi OS (64-bit) to SD card
-3. Enable SSH and configure WiFi during setup
+2. Flash **Raspberry Pi OS (64-bit)** to SD card
+3. Enable SSH, configure WiFi, and set username/password during setup
 
-#### 1.2 Enable Camera and GPIO
+### 1.2 Initial System Configuration
 ```bash
-# Enable camera
-sudo raspi-config
-# Navigate to: Interface Options > Camera > Enable
+# SSH into your Pi
+ssh pi@your_pi_ip
 
-# Enable SPI for RFID
-sudo raspi-config
-# Navigate to: Interface Options > SPI > Enable
-
-# Reboot
-sudo reboot
-```
-
-#### 1.3 Install Dependencies
-```bash
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install Python dependencies
-sudo apt install python3-pip python3-venv -y
+# Enable required interfaces
+sudo raspi-config
+# Navigate to: Interface Options > Camera > Enable
+# Navigate to: Interface Options > SPI > Enable  
+# Navigate to: Interface Options > I2C > Enable
+# Reboot when prompted
+sudo reboot
+```
 
-# Install OpenCV dependencies
+### 1.3 Install System Dependencies
+```bash
+# Install Python and development tools
+sudo apt install python3-pip python3-venv python3-dev -y
+
+# Install OpenCV and camera dependencies
 sudo apt install libopencv-dev python3-opencv -y
-
-# Install camera dependencies
 sudo apt install python3-picamera2 -y
+
+# Install additional system libraries
+sudo apt install libatlas-base-dev libhdf5-dev libhdf5-serial-dev -y
+sudo apt install libqt5gui5 libqt5webkit5 libqt5test5 -y
+
+# Install GPIO libraries
+sudo apt install python3-rpi.gpio -y
 ```
 
-### Step 2: RFID Reader Setup
+## 📡 Step 2: RFID Reader (MFRC522) Setup
 
-#### 2.1 Hardware Connections
-Connect MFRC522 to Raspberry Pi:
+### 2.1 Hardware Connections
 
-| MFRC522 Pin | Raspberry Pi Pin | Description |
-|-------------|------------------|-------------|
-| VCC         | 3.3V (Pin 1)     | Power       |
-| GND         | GND (Pin 6)      | Ground      |
-| RST         | GPIO 22 (Pin 15) | Reset       |
-| IRQ         | Not connected    | Interrupt   |
-| MISO        | GPIO 9 (Pin 21)  | SPI MISO    |
-| MOSI        | GPIO 10 (Pin 19) | SPI MOSI    |
-| SCK         | GPIO 11 (Pin 23) | SPI Clock   |
-| SDA         | GPIO 8 (Pin 24)  | SPI CS      |
+**IMPORTANT**: Power off your Raspberry Pi before making connections!
 
-#### 2.2 Install RFID Libraries
+Connect MFRC522 to Raspberry Pi GPIO pins:
+
+| MFRC522 Pin | Raspberry Pi Pin | GPIO Number | Wire Color |
+|-------------|------------------|-------------|------------|
+| VCC         | 3.3V (Pin 1)     | -           | Red        |
+| GND         | GND (Pin 6)      | -           | Black      |
+| RST         | GPIO 22 (Pin 15) | 22          | Yellow     |
+| IRQ         | Not connected    | -           | -          |
+| MISO        | GPIO 9 (Pin 21)  | 9           | Blue       |
+| MOSI        | GPIO 10 (Pin 19) | 10          | Green      |
+| SCK         | GPIO 11 (Pin 23) | 11          | White      |
+| SDA/SS      | GPIO 8 (Pin 24)  | 8           | Orange     |
+
+### 2.2 Install RFID Libraries
 ```bash
-cd ~/smart-bag-pilot/hardware-integration/rfid
-pip3 install -r requirements.txt
+cd ~/smart-cart/hardware-integration/rfid
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# If requirements.txt doesn't exist, install manually:
+pip install RPi.GPIO mfrc522 requests
 ```
 
-#### 2.3 Test RFID Reader
+### 2.3 Test RFID Reader
 ```bash
+# Test SPI interface
+ls -la /dev/spi*
+# Should show: /dev/spidev0.0 and /dev/spidev0.1
+
+# Test RFID reader
 python3 rfid_reader.py
+# Place RFID tags near the reader to test detection
 ```
 
-### Step 3: Camera Setup
-
-#### 3.1 Hardware Connections
-- Connect Pi Camera to the camera port on Raspberry Pi
-- Ensure camera ribbon cable is properly seated
-
-#### 3.2 Install Camera Dependencies
-```bash
-cd ~/smart-bag-pilot/hardware-integration/camera
-pip3 install -r requirements.txt
+**Expected Output:**
+```
+Starting RFID reader...
+RFID tag detected: a1b2c3d4
+Found product: Red Apples
+✓ Success indicator
 ```
 
-#### 3.3 Test Camera
+## 📷 Step 3: Pi Camera Setup
+
+### 3.1 Hardware Connection
+1. **Power off** your Raspberry Pi
+2. Connect the Pi Camera ribbon cable to the **Camera** port (not Display port)
+3. Ensure the cable is properly seated with contacts facing the right direction
+4. Power on the Pi
+
+### 3.2 Test Camera Installation
 ```bash
-# Test camera detection
+# Check if camera is detected
+libcamera-hello --list-cameras
+
+# Expected output should show your camera model
+# Test camera capture
+libcamera-still -o test.jpg --width 1920 --height 1080
+
+# Verify image was captured
+ls -la test.jpg
+```
+
+### 3.3 Install Camera Dependencies
+```bash
+cd ~/smart-cart/hardware-integration/camera
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install TensorFlow Lite (optimized for Pi)
+pip install tflite-runtime
+
+# Install other dependencies
+pip install opencv-python requests numpy picamera2
+
+# Download ImageNet class labels
+wget https://raw.githubusercontent.com/tensorflow/tensorflow/master/tensorflow/lite/examples/python/label_image/labels.txt -O imagenet_classes.txt
+```
+
+### 3.4 Test Object Detection
+```bash
+# Test camera object detection
 python3 object_detection.py
+
+# Point camera at objects to test detection
+# Expected output:
+# "Detected: Red Apples (confidence: 0.85)"
 ```
 
-### Step 4: ESP32 Load Cell Setup
+## ⚖️ Step 4: Load Cell (ESP32 + HX711) Setup
 
-#### 4.1 Hardware Connections
-Connect HX711 to ESP32:
+### 4.1 Hardware Connections
 
+**ESP32 to HX711 Connections:**
 | HX711 Pin | ESP32 Pin | Description |
 |-----------|-----------|-------------|
 | VCC       | 3.3V      | Power       |
 | GND       | GND       | Ground      |
-| DT        | GPIO 19   | Data        |
-| SCK       | GPIO 18   | Clock       |
+| DT (Data) | GPIO 19   | Data line   |
+| SCK (Clock)| GPIO 18   | Clock line  |
 
-Connect Load Cell to HX711:
-- E+ to Red wire
-- E- to Black wire  
-- A+ to White wire
-- A- to Green wire
+**Load Cell to HX711 Connections:**
+| Load Cell Wire | HX711 Pin | Description |
+|---------------|-----------|-------------|
+| Red           | E+        | Excitation+ |
+| Black         | E-        | Excitation- |
+| White         | A+        | Signal+     |
+| Green         | A-        | Signal-     |
 
-#### 4.2 Install ESP32 Arduino Core
-1. Open Arduino IDE
-2. Go to File > Preferences
-3. Add ESP32 board URL: `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
-4. Go to Tools > Board > Boards Manager
-5. Search for "ESP32" and install
+### 4.2 ESP32 Arduino Setup
 
-#### 4.3 Install HX711 Library
-1. Go to Tools > Manage Libraries
-2. Search for "HX711" by Bogdan
-3. Install the library
+#### Install Arduino IDE and ESP32 Support
+1. Download and install [Arduino IDE](https://arduino.cc/downloads)
+2. Add ESP32 board support:
+   - File → Preferences
+   - Additional Board Manager URLs: `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
+   - Tools → Board → Boards Manager
+   - Search "ESP32" and install "ESP32 by Espressif Systems"
 
-#### 4.4 Upload Code
-1. Open `load_cell_esp32.ino` in Arduino IDE
-2. Select ESP32 board and correct port
-3. Update WiFi credentials in the code
-4. Upload to ESP32
+#### Install Required Libraries
+1. Tools → Manage Libraries
+2. Install these libraries:
+   - **HX711 Arduino Library** by Bogdan Necula
+   - **ArduinoJson** by Benoit Blanchon
+   - **WiFi** (should be pre-installed)
 
-### Step 5: Backend API Setup
+### 4.3 Configure and Upload ESP32 Code
 
-#### 5.1 Install Backend Dependencies
-```bash
-cd ~/smart-bag-pilot/hardware-integration/backend
-pip3 install -r requirements.txt
+1. Open `hardware-integration/load-cell/load_cell_esp32.ino`
+2. Update WiFi credentials:
+```cpp
+const char* ssid = "YOUR_ACTUAL_WIFI_NAME";
+const char* password = "YOUR_ACTUAL_WIFI_PASSWORD";
+```
+3. Update backend API endpoint:
+```cpp
+const char* apiEndpoint = "http://YOUR_PI_IP_ADDRESS:8000/api/weight/update";
+```
+4. Select your ESP32 board: Tools → Board → ESP32 Arduino → ESP32 Dev Module
+5. Select correct port: Tools → Port → (your ESP32 port)
+6. Upload the code: Sketch → Upload
+
+### 4.4 Calibrate Load Cell
+```cpp
+// In Arduino IDE Serial Monitor (115200 baud):
+// 1. Type "tare" and press Enter to zero the scale
+// 2. Place a known weight (e.g., 1000g) on the load cell
+// 3. Type "calibrate" and press Enter
+// 4. Enter the known weight value when prompted
+// 5. The system will calculate and apply the calibration factor
 ```
 
-#### 5.2 Configure Environment
-```bash
-# Copy environment template
-cp ../env.example .env
+## 🔄 Step 5: Backend API Integration
 
-# Edit environment variables
+### 5.1 Configure Backend Environment
+```bash
+cd ~/smart-cart/hardware-integration/backend
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install fastapi uvicorn websockets pydantic
+
+# Create environment file
+cp .env.example .env
 nano .env
 ```
 
-Update the following variables:
+Update `.env` file:
 ```env
-# Backend API URL (use your Pi's IP)
-API_ENDPOINT=http://YOUR_PI_IP:8000/api/cart/add-item
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
 
-# WiFi credentials for ESP32
-WIFI_SSID=your_wifi_name
-WIFI_PASSWORD=your_wifi_password
+# Hardware endpoints
+FRONTEND_URL=http://localhost:5173
+RFID_ENABLED=true
+CAMERA_ENABLED=true
+LOAD_CELL_ENABLED=true
+
+# Database (if using)
+DATABASE_URL=sqlite:///smart_cart.db
 ```
 
-#### 5.3 Start Backend Server
+### 5.2 Start Backend Server
 ```bash
+# Run the backend API
 python3 main.py
+
+# Should output:
+# INFO: Started server process [1234]
+# INFO: Waiting for application startup.
+# INFO: Application startup complete.
+# INFO: Uvicorn running on http://0.0.0.0:8000
 ```
 
-### Step 6: Frontend Configuration
+### 5.3 Test API Endpoints
+```bash
+# Test health endpoint
+curl http://localhost:8000/api/health
 
-#### 6.1 Update API Endpoints
-Edit `src/hooks/useCartUpdates.ts`:
+# Expected response:
+# {"status":"healthy","timestamp":"2024-01-15T10:30:00","active_connections":0}
+
+# Test cart endpoint
+curl -X POST http://localhost:8000/api/cart/add-item \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "test_user",
+    "product_id": "1",
+    "quantity": 1,
+    "scan_type": "manual",
+    "scan_value": "test",
+    "timestamp": 1642248600
+  }'
+```
+
+## 🌐 Step 6: Frontend Integration
+
+### 6.1 Update Frontend Configuration
+
+Edit the frontend WebSocket connection in `src/hooks/useCartUpdates.ts`:
 ```typescript
-const websocketUrl = 'ws://YOUR_PI_IP:8000/ws';
+// Replace localhost with your Pi's IP address
+const websocketUrl = 'ws://YOUR_PI_IP_ADDRESS:8000/ws';
 ```
 
-#### 6.2 Configure Stripe
-1. Create Stripe account at [stripe.com](https://stripe.com)
-2. Get API keys from dashboard
-3. Update `.env` file with your keys
+### 6.2 Configure Stripe Payment Integration
 
-### Step 7: Testing the Complete System
+1. Get your Stripe keys from [Stripe Dashboard](https://dashboard.stripe.com/apikeys)
+2. Add them to your Supabase Edge Function secrets via the Supabase dashboard
+3. Test with Stripe test cards:
+   - Success: `4242 4242 4242 4242`
+   - Decline: `4000 0000 0000 0002`
 
-#### 7.1 Start All Services
+## 🚀 Step 7: Complete System Deployment
+
+### 7.1 Start All Services on Raspberry Pi
+
+Create a startup script:
 ```bash
-# Terminal 1: Frontend
-npm run dev
-
-# Terminal 2: Backend (on Pi)
-python3 main.py
-
-# Terminal 3: RFID Reader (on Pi)
-python3 rfid_reader.py
-
-# Terminal 4: Camera (on Pi)
-python3 object_detection.py
+# Create startup script
+nano ~/start_smart_cart.sh
 ```
 
-#### 7.2 Test Each Component
+Add this content:
+```bash
+#!/bin/bash
+cd ~/smart-cart
+
+echo "Starting Smart Cart System..."
+
+# Start backend API
+cd hardware-integration/backend
+source venv/bin/activate
+python3 main.py &
+BACKEND_PID=$!
+
+# Wait for backend to start
+sleep 5
+
+# Start RFID reader
+cd ../rfid
+source venv/bin/activate
+python3 rfid_reader.py &
+RFID_PID=$!
+
+# Start camera detection
+cd ../camera
+source venv/bin/activate
+python3 object_detection.py &
+CAMERA_PID=$!
+
+echo "Smart Cart services started!"
+echo "Backend PID: $BACKEND_PID"
+echo "RFID PID: $RFID_PID"
+echo "Camera PID: $CAMERA_PID"
+
+# Keep script running
+wait
+```
+
+Make executable and run:
+```bash
+chmod +x ~/start_smart_cart.sh
+~/start_smart_cart.sh
+```
+
+### 7.2 Frontend Deployment Options
+
+#### Option A: Local Development Server
+```bash
+# On your development machine
+npm run dev
+# Access via http://localhost:5173
+```
+
+#### Option B: Production Build
+```bash
+# Build for production
+npm run build
+
+# Serve static files (install serve first: npm install -g serve)
+serve -s dist -l 3000
+```
+
+#### Option C: Deploy to Cloud
+- **Vercel**: Connect your GitHub repo to Vercel
+- **Netlify**: Drag and drop your `dist` folder
+- **Supabase**: Use Supabase hosting (if available)
+
+## 🔧 Step 8: System Testing and Calibration
+
+### 8.1 Hardware Testing Checklist
 
 **RFID Testing:**
-1. Place RFID tags on products
-2. Scan tags with RFID reader
-3. Verify items appear in cart
+```bash
+# 1. Test RFID detection
+python3 ~/smart-cart/hardware-integration/rfid/rfid_reader.py
+
+# 2. Place RFID tags on products
+# 3. Verify console output shows detection
+# 4. Check frontend updates in real-time
+```
 
 **Camera Testing:**
-1. Show products to camera
-2. Verify object detection works
-3. Check cart updates
+```bash
+# 1. Test camera detection
+python3 ~/smart-cart/hardware-integration/camera/object_detection.py
+
+# 2. Show products to camera
+# 3. Verify object recognition works
+# 4. Check confidence scores in logs
+```
 
 **Load Cell Testing:**
-1. Place items on load cell
-2. Verify weight readings
-3. Check weight verification page
+```bash
+# 1. Monitor ESP32 serial output in Arduino IDE
+# 2. Place items on load cell
+# 3. Verify weight readings are stable
+# 4. Check API updates via: curl http://YOUR_PI_IP:8000/api/weight
+```
 
-**Payment Testing:**
-1. Add items to cart
-2. Proceed to checkout
-3. Use Stripe test cards
+### 8.2 Integration Testing
 
-## 🔧 Troubleshooting
+**Full System Test:**
+1. Start all services
+2. Place an RFID-tagged item on the load cell
+3. Scan with RFID reader
+4. Verify item appears in frontend cart
+5. Check weight measurement matches expected weight
+6. Complete checkout process with Stripe
 
-### Common Issues
+## 🔒 Step 9: Production-Ready Enhancements
 
-#### RFID Reader Not Working
+### 9.1 Security Improvements
+
+**Network Security:**
+```bash
+# Configure firewall
+sudo ufw enable
+sudo ufw allow ssh
+sudo ufw allow 8000/tcp  # Backend API
+sudo ufw allow 5173/tcp  # Frontend (if serving from Pi)
+
+# Change default passwords
+sudo passwd pi
+sudo passwd root
+```
+
+**API Security:**
+- Implement API key authentication
+- Add rate limiting
+- Use HTTPS in production
+- Validate all input data
+
+### 9.2 Reliability Features
+
+**Auto-restart Services:**
+Create systemd services:
+```bash
+# Create service file
+sudo nano /etc/systemd/system/smart-cart-backend.service
+```
+
+Add service configuration:
+```ini
+[Unit]
+Description=Smart Cart Backend API
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/smart-cart/hardware-integration/backend
+ExecStart=/home/pi/smart-cart/hardware-integration/backend/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable smart-cart-backend
+sudo systemctl start smart-cart-backend
+```
+
+**Offline Mode Support:**
+- Add local SQLite database for offline storage
+- Implement data synchronization when connection returns
+- Cache product information locally
+- Queue transactions for later processing
+
+### 9.3 Monitoring and Logging
+
+**System Monitoring:**
+```bash
+# Install monitoring tools
+sudo apt install htop iotop -y
+
+# Monitor system resources
+htop
+
+# Monitor disk I/O
+sudo iotop
+
+# Check service logs
+sudo journalctl -u smart-cart-backend -f
+```
+
+**Application Logging:**
+- Implement structured logging with timestamps
+- Log all hardware events and API calls  
+- Set up log rotation to prevent disk space issues
+- Add remote log aggregation for production
+
+### 9.4 Advanced Features
+
+**Admin Dashboard Enhancements:**
+- Real-time hardware status monitoring
+- Product inventory management
+- Sales analytics and reporting
+- Remote configuration management
+
+**Mobile App Integration:**
+- Create React Native or Flutter mobile app
+- QR code scanning for product lookup
+- Push notifications for cart updates
+- Mobile payment integration
+
+**AI/ML Improvements:**
+- Custom product recognition model training
+- Predictive inventory management
+- Customer behavior analytics
+- Fraud detection for unusual patterns
+
+## 🔧 Step 10: Troubleshooting Common Issues
+
+### 10.1 Hardware Issues
+
+**RFID Reader Not Working:**
 ```bash
 # Check SPI is enabled
 lsmod | grep spi
+# Should show: spi_bcm2835
 
 # Check device permissions
 ls -la /dev/spi*
+# Should show spidev0.0 and spidev0.1
 
-# Test with simple script
-python3 -c "import MFRC522; print('RFID library working')"
+# Test with simple detection script
+python3 -c "
+import RPi.GPIO as GPIO
+import MFRC522
+reader = MFRC522.MFRC522()
+print('RFID reader initialized successfully')
+"
 ```
 
-#### Camera Not Detected
+**Camera Not Detected:**
 ```bash
-# Check camera is enabled
+# Check camera detection
 vcgencmd get_camera
+# Should return: supported=1 detected=1
 
-# Test camera
+# Test camera with libcamera
 libcamera-hello --list-cameras
 
 # Check camera permissions
 groups $USER
+# User should be in 'video' group
 ```
 
-#### ESP32 Not Connecting
-1. Check WiFi credentials
-2. Verify ESP32 is on same network
-3. Check serial monitor for error messages
-4. Ensure backend API is accessible
-
-#### WebSocket Connection Failed
-1. Check firewall settings
-2. Verify backend is running on port 8000
-3. Check browser console for errors
-4. Test with curl: `curl http://YOUR_PI_IP:8000/api/health`
-
-### Debug Commands
-
+**ESP32 Load Cell Issues:**
 ```bash
-# Check all services
-ps aux | grep python
+# Check Arduino IDE Serial Monitor (115200 baud)
+# Common issues and solutions:
 
-# Check network connections
-netstat -tulpn | grep :8000
+# 1. WiFi connection failed
+# Solution: Verify SSID and password, check signal strength
+
+# 2. API endpoint unreachable
+# Solution: Verify Pi IP address, check firewall settings
+
+# 3. Unstable weight readings
+# Solution: Check wiring connections, recalibrate load cell
+
+# 4. HX711 not responding
+# Solution: Check power connections, verify GPIO pins
+```
+
+### 10.2 Software Issues
+
+**Backend API Not Starting:**
+```bash
+# Check Python environment
+which python3
+python3 --version
+
+# Check required packages
+pip list | grep fastapi
+
+# Check port availability
+sudo netstat -tulpn | grep :8000
 
 # Check logs
-tail -f /var/log/syslog
-
-# Test API endpoints
-curl -X GET http://localhost:8000/api/health
+tail -f /var/log/syslog | grep smart-cart
 ```
 
-## 📊 Performance Optimization
-
-### Raspberry Pi Optimization
+**Frontend Connection Issues:**
 ```bash
-# Increase GPU memory split
+# Check WebSocket connection
+curl -i -N -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: test" http://YOUR_PI_IP:8000/ws
+
+# Test API endpoints
+curl http://YOUR_PI_IP:8000/api/health
+
+# Check browser console for errors
+# Open developer tools in browser (F12)
+```
+
+**Database/Stripe Issues:**
+- Verify Supabase connection and API keys
+- Check Stripe webhook endpoints are accessible
+- Test payment flows with Stripe test cards
+- Review Supabase Edge Function logs
+
+### 10.3 Performance Optimization
+
+**Raspberry Pi Performance:**
+```bash
+# Monitor CPU and memory usage
+htop
+
+# Check temperature
+vcgencmd measure_temp
+
+# Optimize GPU memory split
 sudo nano /boot/config.txt
 # Add: gpu_mem=128
 
 # Enable hardware acceleration
-sudo nano /boot/config.txt
-# Add: start_x=1
-
-# Optimize for camera
-sudo nano /boot/config.txt
-# Add: camera_auto_detect=1
+# Add: dtoverlay=vc4-kms-v3d
 ```
 
-### ESP32 Optimization
-- Use deep sleep mode when not in use
-- Implement connection retry logic
-- Optimize weight reading frequency
+**Network Optimization:**
+- Use wired Ethernet instead of WiFi when possible
+- Optimize API call frequency
+- Implement request batching for multiple updates
+- Use compression for large data transfers
 
-## 🔒 Security Considerations
+## 🎯 Production Deployment Checklist
 
-### Network Security
-1. Use WPA3 WiFi encryption
-2. Change default passwords
-3. Enable firewall on Raspberry Pi
-4. Use HTTPS in production
+### Pre-Deployment
+- [ ] All hardware components tested individually
+- [ ] Integration testing completed successfully
+- [ ] Security configurations applied
+- [ ] Backup and recovery procedures documented
+- [ ] Performance benchmarks established
 
-### API Security
-1. Implement authentication
-2. Validate all inputs
-3. Rate limit API endpoints
-4. Use secure WebSocket connections
+### Hardware Setup
+- [ ] Raspberry Pi configured and secured
+- [ ] All sensors calibrated and tested
+- [ ] Power supply and connections secured
+- [ ] Environmental protection (cases, mounts) installed
+- [ ] Network connectivity verified
 
-## 📈 Monitoring and Logging
+### Software Deployment
+- [ ] Backend API deployed and monitored
+- [ ] Frontend built and deployed
+- [ ] Database migrations completed
+- [ ] Stripe integration tested with real payments
+- [ ] Monitoring and logging configured
 
-### System Monitoring
-```bash
-# Monitor CPU usage
-htop
-
-# Monitor memory
-free -h
-
-# Monitor disk space
-df -h
-
-# Monitor network
-iftop
-```
-
-### Application Logging
-- Backend logs: Check console output
-- Frontend logs: Check browser console
-- Hardware logs: Check serial output
-
-## 🚀 Production Deployment
-
-### Frontend Deployment
-1. Build production bundle: `npm run build`
-2. Deploy to static hosting (Vercel, Netlify)
-3. Configure environment variables
-4. Set up custom domain
-
-### Backend Deployment
-1. Use production WSGI server (Gunicorn)
-2. Set up reverse proxy (Nginx)
-3. Configure SSL certificates
-4. Set up monitoring and logging
-
-### Hardware Deployment
-1. Use proper enclosures
-2. Implement power management
-3. Set up remote monitoring
-4. Create maintenance procedures
+### Operations
+- [ ] System monitoring dashboard active
+- [ ] Automated backups configured
+- [ ] Update procedures documented
+- [ ] Support contact information available
+- [ ] User training materials prepared
 
 ---
 
-**Need Help?** Check the troubleshooting section or create an issue in the repository.
+## 📞 Support and Troubleshooting
+
+**Common Commands Summary:**
+```bash
+# System status
+systemctl status smart-cart-*
+
+# View logs
+sudo journalctl -u smart-cart-backend -f
+
+# Restart services
+sudo systemctl restart smart-cart-backend
+
+# Check hardware connections
+gpio readall
+
+# Test API
+curl http://localhost:8000/api/health
+
+# Monitor resources
+htop
+```
+
+**Need Help?** 
+- Check the troubleshooting section above
+- Review system logs for error messages
+- Verify all hardware connections
+- Test each component individually
+- Check network connectivity and firewall settings
+
+For additional support, create an issue in the project repository with:
+- Detailed description of the problem
+- System configuration details
+- Relevant log files
+- Steps to reproduce the issue
+
+---
+
+**Smart Cart System - Production Ready Hardware Integration Guide v2.0**
