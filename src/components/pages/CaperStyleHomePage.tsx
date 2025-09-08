@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CartItem } from '@/types';
+import { useProducts } from '@/hooks/useProducts';
 import { 
   ShoppingCart, 
   Scan, 
@@ -22,10 +23,12 @@ interface CaperStyleHomePageProps {
   cartItems: CartItem[];
   onAddToCart: (productId: string) => void;
   onNavigate: (tab: string) => void;
+  onViewProduct?: (product: any) => void;
 }
 
-const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate }: CaperStyleHomePageProps) => {
+const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct }: CaperStyleHomePageProps) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { products } = useProducts();
   
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -35,12 +38,20 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate }: CaperStyleHo
   const cartTotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Personalized recommendations (simulated)
-  const recommendations = [
-    { id: '1', name: 'Red Apples', price: 2.99, discount: '20% off', image: '/images/demo/apples.svg' },
-    { id: '3', name: 'Fresh Milk', price: 3.49, discount: 'Buy 2 Get 1', image: '/images/demo/milk.svg' },
-    { id: '4', name: 'Bananas', price: 1.29, discount: '15% off', image: '/images/demo/bananas.svg' },
-  ];
+  // Personalized recommendations from actual products
+  const recommendationIds = ['1', '3', '4'];
+  const recommendations = recommendationIds.map(id => {
+    const product = products.find(p => p.id === id);
+    if (!product) return null;
+    
+    const discounts = ['20% off', 'Buy 2 Get 1', '15% off'];
+    const discountIndex = recommendationIds.indexOf(id);
+    
+    return {
+      ...product,
+      discount: discounts[discountIndex] || '10% off'
+    };
+  }).filter(Boolean);
 
   // Store offers (simulated)
   const offers = [
@@ -194,13 +205,25 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate }: CaperStyleHo
                   </div>
                   <h4 className="font-medium mb-1">{product.name}</h4>
                   <p className="text-primary font-bold mb-3">${product.price}</p>
-                  <Button 
-                    onClick={() => onAddToCart(product.id)} 
-                    className="w-full"
-                    size="sm"
-                  >
-                    Add to Cart
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={() => onAddToCart(product.id)} 
+                      className="w-full"
+                      size="sm"
+                    >
+                      Add to Cart
+                    </Button>
+                    {onViewProduct && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => onViewProduct(product)} 
+                        className="w-full"
+                        size="sm"
+                      >
+                        View Details
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

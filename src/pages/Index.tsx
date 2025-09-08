@@ -152,6 +152,14 @@ const Index = () => {
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
             onNavigate={setCurrentTab}
+            onViewProduct={(product) => {
+              // Find the full product from our products data
+              const fullProduct = products.find(p => p.id === product.id);
+              if (fullProduct) {
+                setSelectedProduct(fullProduct);
+                setCurrentTab('product-detail');
+              }
+            }}
           />
         )}
         {currentTab === 'scan' && (
@@ -195,6 +203,10 @@ const Index = () => {
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
             onNavigate={setCurrentTab}
+            onViewProduct={(product) => {
+              setSelectedProduct(product);
+              setCurrentTab('product-detail');
+            }}
           />
         )}
         {currentTab === 'weight' && (

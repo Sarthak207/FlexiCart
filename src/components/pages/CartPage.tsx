@@ -1,17 +1,18 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CartItem } from '@/types';
-import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { CartItem, Product } from '@/types';
+import { Trash2, Plus, Minus, ShoppingCart, Info } from 'lucide-react';
 
 interface CartPageProps {
   cartItems: CartItem[];
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
   onNavigate: (tab: string) => void;
+  onViewProduct?: (product: Product) => void;
 }
 
-const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: CartPageProps) => {
+const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate, onViewProduct }: CartPageProps) => {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalWeight = cartItems.reduce((sum, item) => sum + ((item.product.weight || 0) * item.quantity), 0);
@@ -90,6 +91,17 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
                               <p className="text-sm text-muted-foreground">
                                 {item.product.weight}g each
                               </p>
+                              {onViewProduct && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onViewProduct(item.product)}
+                                  className="text-xs p-1 h-auto mt-1"
+                                >
+                                  <Info className="h-3 w-3 mr-1" />
+                                  View Details
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
