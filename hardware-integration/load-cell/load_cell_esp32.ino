@@ -9,16 +9,16 @@
 #include "HX711.h"
 
 // WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "Ghatiya_clg";
+const char* password = "1234Sart";
 
 // Backend API configuration
 const char* apiEndpoint = "http://YOUR_BACKEND_IP:8000/api/weight/update";
 const char* deviceId = "load_cell_001";
 
 // Load cell pins
-#define LOADCELL_DOUT_PIN 19
-#define LOADCELL_SCK_PIN 18
+#define LOADCELL_DOUT_PIN 32
+#define LOADCELL_SCK_PIN 33
 
 // Calibration factor (adjust based on your load cell)
 #define CALIBRATION_FACTOR 1000.0
