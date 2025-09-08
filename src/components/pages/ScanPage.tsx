@@ -5,14 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { mockProducts } from '@/data/mockProducts';
 import { Product, CartItem } from '@/types';
-import { ShoppingCart, Search, Filter, MapPin, Camera, Scan, Zap, Star } from 'lucide-react';
+import { ShoppingCart, Search, Filter, Info, Camera, Scan, Zap, Star } from 'lucide-react';
 
 interface ScanPageProps {
   onAddToCart: (product: Product, quantity: number) => void;
   cartItems: CartItem[];
+  onNavigate: (tab: string) => void;
+  onViewProduct?: (product: Product) => void;
 }
 
-const ScanPage = ({ onAddToCart, cartItems }: ScanPageProps) => {
+const ScanPage = ({ onAddToCart, cartItems, onNavigate, onViewProduct }: ScanPageProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
@@ -295,9 +297,19 @@ const ScanPage = ({ onAddToCart, cartItems }: ScanPageProps) => {
                         {isInCart(product.id) ? 'Added to Cart' : 'Add to Cart'}
                       </Button>
                       
-                      <Button variant="outline" className="w-full min-h-touch" size="lg">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Find on Map
+                      <Button 
+                        variant="outline" 
+                        className="w-full min-h-touch" 
+                        size="lg"
+                        onClick={() => {
+                          if (onViewProduct) {
+                            onViewProduct(product);
+                            onNavigate('product-detail');
+                          }
+                        }}
+                      >
+                        <Info className="h-4 w-4 mr-2" />
+                        View Details
                       </Button>
                     </div>
                   </CardContent>

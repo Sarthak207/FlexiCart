@@ -16,9 +16,11 @@ import { Toaster } from '@/components/ui/toaster';
 import { CartItem, Product } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
 import { useCartUpdates } from '@/hooks/useCartUpdates';
+import ProductDetailPage from '@/components/pages/ProductDetailPage';
 
 const Index = () => {
   const [currentTab, setCurrentTab] = useState('home');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { user, loading } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [currentWeight, setCurrentWeight] = useState(0);
@@ -154,8 +156,37 @@ const Index = () => {
         )}
         {currentTab === 'scan' && (
           <ScanPage
-            onAddToCart={(product) => handleAddToCart(product.id)}
+            onAddToCart={(product, quantity) => {
+              const existingItem = cartItems.find(item => item.product.id === product.id);
+              if (existingItem) {
+                handleUpdateQuantity(product.id, existingItem.quantity + quantity);
+              } else {
+                setCartItems(prev => [...prev, { product, quantity, addedAt: new Date() }]);
+              }
+            }}
             cartItems={cartItems}
+            onNavigate={setCurrentTab}
+            onViewProduct={setSelectedProduct}
+          />
+        )}
+        {currentTab === 'product-detail' && selectedProduct && (
+          <ProductDetailPage
+            product={selectedProduct}
+            cartItems={cartItems}
+            onAddToCart={(product, quantity) => {
+              const existingItem = cartItems.find(item => item.product.id === product.id);
+              if (existingItem) {
+                handleUpdateQuantity(product.id, existingItem.quantity + quantity);
+              } else {
+                setCartItems(prev => [...prev, { product, quantity, addedAt: new Date() }]);
+              }
+            }}
+            onNavigate={(tab) => {
+              if (tab === 'scan') {
+                setSelectedProduct(null);
+              }
+              setCurrentTab(tab);
+            }}
           />
         )}
         {currentTab === 'cart' && (
