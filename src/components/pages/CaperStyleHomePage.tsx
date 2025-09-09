@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { CartItem } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
+import { formatCurrency } from '@/lib/utils';
 import { 
   ShoppingCart, 
   Scan, 
@@ -55,9 +56,9 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct 
 
   // Store offers (simulated)
   const offers = [
-    { title: 'Fresh Produce Sale', description: '25% off all fruits & vegetables', color: 'bg-green-500' },
-    { title: 'Dairy Special', description: 'Buy 2 dairy products, get 20% off', color: 'bg-blue-500' },
-    { title: 'Weekend Bundle', description: 'Complete meal kits starting at $15', color: 'bg-orange-500' },
+    { title: 'Fresh Fruits Sale', description: '25% off on all fruits & vegetables', color: 'bg-green-500' },
+    { title: 'Dairy Dhamaka', description: 'Buy 2 dairy products, get 20% off', color: 'bg-blue-500' },
+    { title: 'Weekend Special', description: 'Complete meal combos starting at ₹150', color: 'bg-orange-500' },
   ];
 
   return (
@@ -92,7 +93,7 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct 
                   </div>
                   <div>
                     <h3 className="text-xl font-bold">Your Cart</h3>
-                    <p className="text-muted-foreground">{cartCount} items • ${cartTotal.toFixed(2)}</p>
+                    <p className="text-muted-foreground">{cartCount} items • {formatCurrency(cartTotal)}</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -204,7 +205,7 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct 
                     </Badge>
                   </div>
                   <h4 className="font-medium mb-1">{product.name}</h4>
-                  <p className="text-primary font-bold mb-3">${product.price}</p>
+                  <p className="text-primary font-bold mb-3">{formatCurrency(product.price)}</p>
                   <div className="space-y-2">
                     <Button 
                       onClick={() => onAddToCart(product.id)} 
@@ -269,11 +270,11 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct 
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total value:</span>
-                  <span className="font-medium">${cartTotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(cartTotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Savings today:</span>
-                  <span className="font-medium text-green-600">$5.47</span>
+                  <span className="font-medium text-green-600">₹25</span>
                 </div>
               </div>
             </CardContent>

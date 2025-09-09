@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 import { CreditCard, Smartphone, QrCode, CheckCircle, ArrowLeft } from 'lucide-react';
 
 interface CheckoutPageProps {
@@ -25,8 +26,8 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
   const { toast } = useToast();
   
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  const gst = subtotal * 0.18; // 18% GST in India
+  const total = subtotal + gst;
 
   // Handle Stripe success/cancel redirects
   useEffect(() => {
@@ -73,10 +74,16 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
 
   const paymentMethods = [
     {
-      id: 'stripe',
-      name: 'Stripe',
+      id: 'razorpay',
+      name: 'Razorpay',
       icon: CreditCard,
-      description: 'Secure payment gateway - Cards, Apple Pay, Google Pay'
+      description: 'UPI, Cards, Net Banking, Wallets - All Indian payment methods'
+    },
+    {
+      id: 'upi',
+      name: 'UPI Payment',
+      icon: QrCode,
+      description: 'Pay using Google Pay, PhonePe, Paytm, or any UPI app'
     },
     {
       id: 'cash',
@@ -133,7 +140,45 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
       return;
     }
 
-    // Handle Stripe payment
+    if (paymentMethod === 'upi' || paymentMethod === 'razorpay') {
+      // Handle UPI/Razorpay payment
+      setIsProcessing(true);
+      try {
+        // For demo purposes, simulate payment success
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            items: JSON.stringify(cartItems),
+            total: total,
+            payment_method: paymentMethod,
+            status: 'completed',
+            payment_status: 'succeeded'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setIsProcessing(false);
+        setIsComplete(true);
+        
+        setTimeout(() => {
+          onCheckoutComplete(data.id);
+        }, 2000);
+      } catch (error) {
+        console.error('Error creating transaction:', error);
+        toast({
+          title: "Error",
+          description: "Failed to complete payment. Please try again.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+      }
+      return;
+    }
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
@@ -237,9 +282,9 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
                     <p className="text-muted-foreground">
                       Pay securely using Cards, Apple Pay, Google Pay, or other methods
                     </p>
-                    <p className="text-lg font-bold mt-4">
-                      Total: ${total.toFixed(2)}
-                    </p>
+                     <p className="text-lg font-bold mt-4">
+                       Total: {formatCurrency(total)}
+                     </p>
                   </div>
                 </CardContent>
               </Card>
@@ -255,9 +300,9 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
                   <div className="text-center py-8">
                     <Smartphone className="h-32 w-32 mx-auto mb-4 text-primary" />
                     <p className="text-lg font-semibold mb-2">Cash Payment</p>
-                    <p className="text-muted-foreground">
-                      Pay ${total.toFixed(2)} in cash when your order is delivered
-                    </p>
+                     <p className="text-muted-foreground">
+                       Pay {formatCurrency(total)} in cash when your order is delivered
+                     </p>
                   </div>
                 </CardContent>
               </Card>
@@ -279,7 +324,7 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
                         <p className="font-medium">{item.product.name}</p>
                         <p className="text-muted-foreground">Qty: {item.quantity}</p>
                       </div>
-                      <p className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-medium">{formatCurrency(item.product.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
@@ -287,29 +332,29 @@ const CheckoutPage = ({ cartItems, onNavigate, onCheckoutComplete }: CheckoutPag
                 <Separator />
 
                 {/* Totals */}
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax (8%)</span>
-                    <span>${tax.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
-                </div>
+                 <div className="space-y-2">
+                   <div className="flex justify-between">
+                     <span>Subtotal</span>
+                     <span>{formatCurrency(subtotal)}</span>
+                   </div>
+                   <div className="flex justify-between">
+                     <span>GST (18%)</span>
+                     <span>{formatCurrency(gst)}</span>
+                   </div>
+                   <Separator />
+                   <div className="flex justify-between text-lg font-bold">
+                     <span>Total</span>
+                     <span>{formatCurrency(total)}</span>
+                   </div>
+                 </div>
 
-                <Button
-                  className="w-full min-h-touch"
-                  onClick={handlePayment}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? 'Processing...' : `Pay $${total.toFixed(2)}`}
-                </Button>
+                 <Button
+                   className="w-full min-h-[3rem] text-lg font-semibold"
+                   onClick={handlePayment}
+                   disabled={isProcessing}
+                 >
+                   {isProcessing ? 'Processing...' : `Pay ${formatCurrency(total)}`}
+                 </Button>
               </CardContent>
             </Card>
 
