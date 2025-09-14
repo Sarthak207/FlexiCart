@@ -17,6 +17,8 @@ import { CartItem, Product } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
 import { useCartUpdates } from '@/hooks/useCartUpdates';
 import ProductDetailPage from '@/components/pages/ProductDetailPage';
+import MobileScanPage from '@/components/MobileScanPage';
+import { useMobileDevice } from '@/hooks/useMobileDevice';
 
 const Index = () => {
   const [currentTab, setCurrentTab] = useState('home');
@@ -26,6 +28,7 @@ const Index = () => {
   const [currentWeight, setCurrentWeight] = useState(0);
   const [weightStable, setWeightStable] = useState(false);
   const { products } = useProducts();
+  const { isMobile, isCapacitor } = useMobileDevice();
 
   // Real-time cart updates
   const {
@@ -163,19 +166,25 @@ const Index = () => {
           />
         )}
         {currentTab === 'scan' && (
-          <ScanPage
-            onAddToCart={(product, quantity) => {
-              const existingItem = cartItems.find(item => item.product.id === product.id);
-              if (existingItem) {
-                handleUpdateQuantity(product.id, existingItem.quantity + quantity);
-              } else {
-                setCartItems(prev => [...prev, { product, quantity, addedAt: new Date() }]);
-              }
-            }}
-            cartItems={cartItems}
-            onNavigate={setCurrentTab}
-            onViewProduct={setSelectedProduct}
-          />
+          <>
+            {(isMobile || isCapacitor) ? (
+              <MobileScanPage onNavigate={setCurrentTab} />
+            ) : (
+              <ScanPage
+                onAddToCart={(product, quantity) => {
+                  const existingItem = cartItems.find(item => item.product.id === product.id);
+                  if (existingItem) {
+                    handleUpdateQuantity(product.id, existingItem.quantity + quantity);
+                  } else {
+                    setCartItems(prev => [...prev, { product, quantity, addedAt: new Date() }]);
+                  }
+                }}
+                cartItems={cartItems}
+                onNavigate={setCurrentTab}
+                onViewProduct={setSelectedProduct}
+              />
+            )}
+          </>
         )}
         {currentTab === 'product-detail' && selectedProduct && (
           <ProductDetailPage
