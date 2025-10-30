@@ -1,4 +1,4 @@
-# Smart Cart Pilot Project
+# FlexiCart Project
 
 A comprehensive smart shopping cart system with hardware integrations, real-time updates, and Stripe payment processing.
 
