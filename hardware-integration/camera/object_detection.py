@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Object Detection Integration for Smart Cart
-Uses Pi Camera with MobileNet for product recognition
+Now supports IP Webcam (mobile camera) or local USB/PiCam
 """
 
 import cv2
@@ -12,6 +12,7 @@ import time
 import logging
 from typing import Optional, Dict, Any, List
 import json
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -47,167 +48,133 @@ class ObjectDetector:
         self.detection_interval = 2.0  # seconds between detections
         self.last_detection_time = 0
         self.min_confidence = 0.5
-        
-    def initialize_camera(self, camera_index: int = 0) -> bool:
+
+        # Snapshot fallback (for IP Webcam)
+        self.snapshot_url = None
+
+    def initialize_camera(self, camera_source: str = 0) -> bool:
         """
-        Initialize camera
-        
-        Args:
-            camera_index: Camera index (0 for default camera)
-            
-        Returns:
-            True if successful, False otherwise
+        Initialize camera (supports USB/PiCam or IP Webcam)
         """
         try:
-            self.camera = cv2.VideoCapture(camera_index)
+            logger.info(f"Initializing camera source: {camera_source}")
+
+            # Check if using IP Webcam stream (http://)
+            if isinstance(camera_source, str) and camera_source.startswith("http"):
+                self.camera = cv2.VideoCapture(camera_source)
+                # Also store snapshot URL as fallback
+                base_url = camera_source.split("/video")[0]
+                self.snapshot_url = f"{base_url}/shot.jpg"
+            else:
+                self.camera = cv2.VideoCapture(int(camera_source))
+
             if not self.camera.isOpened():
-                logger.error("Failed to open camera")
-                return False
-            
-            # Set camera properties
+                logger.warning("Failed to open camera stream. Trying snapshot fallback (IP Webcam)...")
+                if self.snapshot_url:
+                    test_frame = self.get_ip_snapshot()
+                    if test_frame is not None:
+                        logger.info("Using snapshot mode from IP Webcam.")
+                        return True
+                    else:
+                        logger.error("Snapshot test failed. Camera not accessible.")
+                        return False
+                else:
+                    logger.error("No valid camera stream found.")
+                    return False
+
+            # Configure camera (if it's a local webcam)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            self.camera.set(cv2.CAP_PROP_FPS, 30)
-            
+            self.camera.set(cv2.CAP_PROP_FPS, 15)
+
             logger.info("Camera initialized successfully")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error initializing camera: {e}")
             return False
-    
+
+    def get_ip_snapshot(self) -> Optional[np.ndarray]:
+        """
+        Capture single frame from IP Webcam snapshot endpoint
+        """
+        if not self.snapshot_url:
+            return None
+        try:
+            resp = requests.get(self.snapshot_url, timeout=3)
+            if resp.status_code == 200:
+                img_array = np.asarray(bytearray(resp.content), dtype=np.uint8)
+                frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                return frame
+        except Exception as e:
+            logger.error(f"Error fetching snapshot from IP cam: {e}")
+        return None
+
     def load_model(self, model_path: str = None) -> bool:
-        """
-        Load MobileNet model
-        
-        Args:
-            model_path: Path to model file (if None, uses default MobileNet)
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Load MobileNet model"""
         try:
             if model_path:
-                # Load custom model
                 self.model = tf.keras.models.load_model(model_path)
             else:
-                # Use pre-trained MobileNet
                 self.model = tf.keras.applications.MobileNetV2(
                     input_shape=(224, 224, 3),
                     include_top=True,
                     weights='imagenet'
                 )
-            
-            # Load class names for ImageNet
+
             with open('imagenet_classes.json', 'r') as f:
                 self.class_names = json.load(f)
-            
+
             logger.info("Model loaded successfully")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error loading model: {e}")
             return False
-    
+
     def preprocess_image(self, image: np.ndarray) -> np.ndarray:
-        """
-        Preprocess image for model input
-        
-        Args:
-            image: Input image
-            
-        Returns:
-            Preprocessed image
-        """
-        # Resize to model input size
+        """Preprocess image for model input"""
         resized = cv2.resize(image, (224, 224))
-        
-        # Convert BGR to RGB
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-        
-        # Normalize pixel values
         normalized = rgb.astype(np.float32) / 255.0
-        
-        # Add batch dimension
-        batched = np.expand_dims(normalized, axis=0)
-        
-        return batched
-    
+        return np.expand_dims(normalized, axis=0)
+
     def detect_objects(self, image: np.ndarray) -> List[Dict[str, Any]]:
-        """
-        Detect objects in image
-        
-        Args:
-            image: Input image
-            
-        Returns:
-            List of detected objects with confidence scores
-        """
+        """Detect objects in image"""
         try:
-            # Preprocess image
             processed = self.preprocess_image(image)
-            
-            # Run inference
             predictions = self.model.predict(processed, verbose=0)
-            
-            # Get top predictions
             top_indices = np.argsort(predictions[0])[-5:][::-1]
-            
+
             detections = []
             for idx in top_indices:
                 confidence = float(predictions[0][idx])
                 class_name = self.class_names[idx] if idx < len(self.class_names) else f"class_{idx}"
-                
                 if confidence > self.min_confidence:
                     detections.append({
                         "class_name": class_name,
                         "confidence": confidence,
                         "class_id": idx
                     })
-            
             return detections
-            
         except Exception as e:
             logger.error(f"Error in object detection: {e}")
             return []
-    
+
     def map_detection_to_product(self, detection: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """
-        Map detected object to product
-        
-        Args:
-            detection: Detection result
-            
-        Returns:
-            Product data or None if not found
-        """
+        """Map detected object to known product"""
         class_name = detection["class_name"].lower()
         confidence = detection["confidence"]
-        
-        # Check for exact matches first
         for product_key, product_data in self.product_mapping.items():
             if product_key in class_name and confidence >= product_data["confidence_threshold"]:
                 return product_data
-        
-        # Check for partial matches
         for product_key, product_data in self.product_mapping.items():
             if any(word in class_name for word in product_key.split()) and confidence >= product_data["confidence_threshold"]:
                 return product_data
-        
         return None
-    
+
     def send_to_cart(self, product_data: Dict[str, Any], confidence: float, user_id: str = "demo_user") -> bool:
-        """
-        Send product data to cart via API
-        
-        Args:
-            product_data: Product information
-            confidence: Detection confidence
-            user_id: User ID for the cart
-            
-        Returns:
-            True if successful, False otherwise
-        """
+        """Send product data to backend"""
         try:
             payload = {
                 "user_id": user_id,
@@ -218,145 +185,104 @@ class ObjectDetector:
                 "confidence": confidence,
                 "timestamp": time.time()
             }
-            
-            response = requests.post(
-                self.api_endpoint,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=5
-            )
-            
+            response = requests.post(self.api_endpoint, json=payload, headers={"Content-Type": "application/json"}, timeout=5)
             if response.status_code == 200:
-                logger.info(f"Successfully added {product_data['name']} to cart (confidence: {confidence:.2f})")
+                logger.info(f"Added {product_data['name']} to cart (confidence: {confidence:.2f})")
                 return True
             else:
                 logger.error(f"Failed to add item to cart: {response.status_code} - {response.text}")
                 return False
-                
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
             return False
-    
+
     def process_frame(self, image: np.ndarray) -> bool:
-        """
-        Process a single frame for object detection
-        
-        Args:
-            image: Input frame
-            
-        Returns:
-            True if item was added to cart
-        """
+        """Process a single frame for detection"""
         current_time = time.time()
-        
-        # Check if enough time has passed since last detection
         if current_time - self.last_detection_time < self.detection_interval:
             return False
-        
-        # Detect objects
+
         detections = self.detect_objects(image)
-        
         if not detections:
             return False
-        
-        # Process each detection
-        item_added = False
+
         for detection in detections:
             product_data = self.map_detection_to_product(detection)
-            
             if product_data:
-                logger.info(f"Detected: {product_data['name']} (confidence: {detection['confidence']:.2f})")
-                
-                # Add to cart
-                success = self.send_to_cart(product_data, detection['confidence'])
-                
-                if success:
+                logger.info(f"Detected: {product_data['name']} (conf: {detection['confidence']:.2f})")
+                if self.send_to_cart(product_data, detection['confidence']):
                     self.last_detection_time = current_time
-                    item_added = True
                     self.indicate_success()
-                    break  # Only add one item per detection cycle
-        
-        return item_added
-    
+                    return True
+        return False
+
     def indicate_success(self):
-        """Indicate successful detection"""
         logger.info("✓ Success indicator")
-        # In a real implementation, this would control LEDs, buzzers, etc.
-    
+
     def indicate_error(self):
-        """Indicate error"""
         logger.warning("✗ Error indicator")
-        # In a real implementation, this would control LEDs, buzzers, etc.
-    
+
     def start_detection(self):
-        """Start the object detection loop"""
-        if not self.camera or not self.model:
-            logger.error("Camera or model not initialized")
+        """Main detection loop"""
+        if not self.model:
+            logger.error("Model not loaded.")
             return
-        
+
         logger.info("Starting object detection...")
         self.running = True
-        
+
         try:
             while self.running:
-                # Capture frame
-                ret, frame = self.camera.read()
-                if not ret:
-                    logger.warning("Failed to capture frame")
-                    continue
-                
-                # Process frame
-                self.process_frame(frame)
-                
-                # Display frame (optional, for debugging)
-                # cv2.imshow('Object Detection', frame)
-                # if cv2.waitKey(1) & 0xFF == ord('q'):
-                #     break
-                
-                # Small delay to prevent excessive CPU usage
+                frame = None
+                if self.camera and self.camera.isOpened():
+                    ret, frame = self.camera.read()
+                    if not ret:
+                        logger.warning("Frame capture failed, trying snapshot...")
+                        frame = self.get_ip_snapshot()
+                else:
+                    frame = self.get_ip_snapshot()
+
+                if frame is not None:
+                    self.process_frame(frame)
+                else:
+                    logger.warning("No frame available.")
+
                 time.sleep(0.1)
-                
         except KeyboardInterrupt:
             logger.info("Detection stopped by user")
         except Exception as e:
             logger.error(f"Error in detection loop: {e}")
         finally:
             self.cleanup()
-    
+
     def cleanup(self):
-        """Clean up resources"""
         self.running = False
         if self.camera:
             self.camera.release()
         cv2.destroyAllWindows()
 
+
 def main():
     """Main function"""
-    # Configuration
     API_ENDPOINT = "http://localhost:8000/api/cart/add-item"
-    CAMERA_INDEX = 0  # Use default camera
-    
-    # Create detector instance
+    CAMERA_SOURCE = "http://192.168.1.8:8080/video"  # Replace with your mobile IP Webcam URL
+
     detector = ObjectDetector(API_ENDPOINT)
-    
     try:
-        # Initialize camera
-        if not detector.initialize_camera(CAMERA_INDEX):
-            logger.error("Failed to initialize camera")
+        if not detector.initialize_camera(CAMERA_SOURCE):
+            logger.error("Failed to initialize IP camera stream")
             return
-        
-        # Load model
+
         if not detector.load_model():
             logger.error("Failed to load model")
             return
-        
-        # Start detection
+
         detector.start_detection()
-        
     except Exception as e:
         logger.error(f"Fatal error: {e}")
     finally:
         detector.cleanup()
+
 
 if __name__ == "__main__":
     main()
