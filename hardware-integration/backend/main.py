@@ -13,10 +13,10 @@ import cv2, threading, time, logging, json
 
 # ---------------- CONFIG ---------------- #
 CAMERA_URL = "http://192.168.1.5:8080/video"  # mobile IP webcam
-CONFIDENCE_THRESHOLD = 0.6
-RESIZE_WIDTH = 480
-RESIZE_HEIGHT = 360
-FRAME_SKIP = 2
+CONFIDENCE_THRESHOLD = 0.5  # Lower threshold for better detection
+RESIZE_WIDTH = 640  # Higher resolution for better detection
+RESIZE_HEIGHT = 480
+FRAME_SKIP = 3  # Skip more frames for better performance
 
 # ---------------- LOGGING ---------------- #
 logging.basicConfig(level=logging.INFO)

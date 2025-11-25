@@ -113,14 +113,14 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card 
             className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800"
-            onClick={() => onNavigate('scan')}
+            onClick={() => onNavigate('browse')}
           >
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Scan className="h-8 w-8 text-white" />
+                <ShoppingCart className="h-8 w-8 text-white" />
               </div>
-              <h3 className="font-bold text-lg mb-2">Scan Products</h3>
-              <p className="text-sm text-muted-foreground">Barcode & AI scanning</p>
+              <h3 className="font-bold text-lg mb-2">Browse Products</h3>
+              <p className="text-sm text-muted-foreground">View all products</p>
             </CardContent>
           </Card>
 
@@ -132,7 +132,7 @@ const CaperStyleHomePage = ({ cartItems, onAddToCart, onNavigate, onViewProduct 
               <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Camera className="h-8 w-8 text-white" />
               </div>
-              <h3 className="font-bold text-lg mb-2">AI Camera</h3>
+              <h3 className="font-bold text-lg mb-2">AI Camera Scan</h3>
               <p className="text-sm text-muted-foreground">Smart product detection</p>
             </CardContent>
           </Card>
