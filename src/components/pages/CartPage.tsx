@@ -182,6 +182,13 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate, onVie
             <Card>
               <CardContent className="p-4 space-y-3">
                 <Button 
+                  variant="outline"
+                  className="w-full min-h-[3rem] text-lg" 
+                  onClick={() => onNavigate('fullcart')}
+                >
+                  View Full Cart
+                </Button>
+                <Button 
                   className="w-full min-h-[3rem] text-lg font-semibold" 
                   onClick={() => onNavigate('weight')}
                 >
