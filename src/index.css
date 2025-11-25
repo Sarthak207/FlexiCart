@@ -134,3 +134,6 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Import mobile-specific styles */
+@import "./styles/mobile.css";

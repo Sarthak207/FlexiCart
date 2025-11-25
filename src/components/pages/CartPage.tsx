@@ -1,17 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CartItem } from '@/types';
-import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { CartItem, Product } from '@/types';
+import { formatCurrency } from '@/lib/utils';
+import { Trash2, Plus, Minus, ShoppingCart, Info } from 'lucide-react';
 
 interface CartPageProps {
   cartItems: CartItem[];
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
   onNavigate: (tab: string) => void;
+  onViewProduct?: (product: Product) => void;
 }
 
-const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: CartPageProps) => {
+const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate, onViewProduct }: CartPageProps) => {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalWeight = cartItems.reduce((sum, item) => sum + ((item.product.weight || 0) * item.quantity), 0);
@@ -49,7 +51,7 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-3xl font-bold text-primary">${totalPrice.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-primary">{formatCurrency(totalPrice)}</p>
           </div>
         </div>
 
@@ -90,10 +92,21 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
                               <p className="text-sm text-muted-foreground">
                                 {item.product.weight}g each
                               </p>
+                              {onViewProduct && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onViewProduct(item.product)}
+                                  className="text-xs p-1 h-auto mt-1"
+                                >
+                                  <Info className="h-3 w-3 mr-1" />
+                                  View Details
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="font-medium">
-                            ${item.product.price.toFixed(2)}
+                            {formatCurrency(item.product.price)}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -118,7 +131,7 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
                             </div>
                           </TableCell>
                           <TableCell className="font-bold">
-                            ${(item.product.price * item.quantity).toFixed(2)}
+                            {formatCurrency(item.product.price * item.quantity)}
                           </TableCell>
                           <TableCell>
                             <Button
@@ -148,20 +161,20 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Items ({totalItems})</span>
-                  <span>${totalPrice.toFixed(2)}</span>
+                  <span>{formatCurrency(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Estimated Weight</span>
                   <span>{(totalWeight / 1000).toFixed(2)}kg</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax</span>
-                  <span>${(totalPrice * 0.08).toFixed(2)}</span>
+                  <span>GST (18%)</span>
+                  <span>{formatCurrency(totalPrice * 0.18)}</span>
                 </div>
                 <hr />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>${(totalPrice * 1.08).toFixed(2)}</span>
+                  <span>{formatCurrency(totalPrice * 1.18)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -169,13 +182,13 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
             <Card>
               <CardContent className="p-4 space-y-3">
                 <Button 
-                  className="w-full min-h-touch" 
+                  className="w-full min-h-[3rem] text-lg font-semibold" 
                   onClick={() => onNavigate('weight')}
                 >
                   Verify Weight
                 </Button>
                 <Button 
-                  className="w-full min-h-touch" 
+                  className="w-full min-h-[3rem] text-lg font-semibold" 
                   onClick={() => onNavigate('checkout')}
                   disabled={cartItems.length === 0}
                 >
@@ -183,7 +196,7 @@ const CartPage = ({ cartItems, onUpdateQuantity, onRemoveItem, onNavigate }: Car
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full min-h-touch"
+                  className="w-full min-h-[3rem] text-lg"
                   onClick={() => onNavigate('scan')}
                 >
                   Continue Shopping

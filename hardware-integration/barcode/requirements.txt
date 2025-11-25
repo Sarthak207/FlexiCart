@@ -1,0 +1,12 @@
+# Barcode Scanner Requirements
+opencv-python==4.8.1.78
+pyzbar==0.1.9
+numpy==1.24.3
+requests==2.31.0
+pillow==10.0.1
+
+# Additional dependencies for better barcode detection
+zbar-py==1.0.4
+
+# For USB barcode scanners (optional)
+pyserial==3.5

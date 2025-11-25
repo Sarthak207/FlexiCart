@@ -7,6 +7,20 @@ export interface Product {
   barcode?: string;
   weight?: number; // Expected weight in grams
   category: string;
+  description?: string;
+  ingredients?: string[];
+  nutrition?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber?: number;
+    sugar?: number;
+  };
+  healthBenefits?: string[];
+  allergens?: string[];
+  origin?: string;
+  brand?: string;
 }
 
 export interface CartItem {

@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import HomePage from '@/components/pages/HomePage';
+import CaperStyleHomePage from '@/components/pages/CaperStyleHomePage';
 import ScanPage from '@/components/pages/ScanPage';
 import CartPage from '@/components/pages/CartPage';
 import WeightCheckPage from '@/components/pages/WeightCheckPage';
@@ -15,14 +16,19 @@ import { Toaster } from '@/components/ui/toaster';
 import { CartItem, Product } from '@/types';
 import { useProducts } from '@/hooks/useProducts';
 import { useCartUpdates } from '@/hooks/useCartUpdates';
+import ProductDetailPage from '@/components/pages/ProductDetailPage';
+import MobileScanPage from '@/components/MobileScanPage';
+import { useMobileDevice } from '@/hooks/useMobileDevice';
 
 const Index = () => {
   const [currentTab, setCurrentTab] = useState('home');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { user, loading } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [currentWeight, setCurrentWeight] = useState(0);
   const [weightStable, setWeightStable] = useState(false);
   const { products } = useProducts();
+  const { isMobile, isCapacitor } = useMobileDevice();
 
   // Real-time cart updates
   const {
@@ -145,16 +151,59 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="pb-20">
         {currentTab === 'home' && (
-          <HomePage
+          <CaperStyleHomePage
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
             onNavigate={setCurrentTab}
+            onViewProduct={(product) => {
+              // Find the full product from our products data
+              const fullProduct = products.find(p => p.id === product.id);
+              if (fullProduct) {
+                setSelectedProduct(fullProduct);
+                setCurrentTab('product-detail');
+              }
+            }}
           />
         )}
         {currentTab === 'scan' && (
-          <ScanPage
-            onAddToCart={(product) => handleAddToCart(product.id)}
+          <>
+            {(isMobile || isCapacitor) ? (
+              <MobileScanPage onNavigate={setCurrentTab} />
+            ) : (
+              <ScanPage
+                onAddToCart={(product, quantity) => {
+                  const existingItem = cartItems.find(item => item.product.id === product.id);
+                  if (existingItem) {
+                    handleUpdateQuantity(product.id, existingItem.quantity + quantity);
+                  } else {
+                    setCartItems(prev => [...prev, { product, quantity, addedAt: new Date() }]);
+                  }
+                }}
+                cartItems={cartItems}
+                onNavigate={setCurrentTab}
+                onViewProduct={setSelectedProduct}
+              />
+            )}
+          </>
+        )}
+        {currentTab === 'product-detail' && selectedProduct && (
+          <ProductDetailPage
+            product={selectedProduct}
             cartItems={cartItems}
+            onAddToCart={(product, quantity) => {
+              const existingItem = cartItems.find(item => item.product.id === product.id);
+              if (existingItem) {
+                handleUpdateQuantity(product.id, existingItem.quantity + quantity);
+              } else {
+                setCartItems(prev => [...prev, { product, quantity, addedAt: new Date() }]);
+              }
+            }}
+            onNavigate={(tab) => {
+              if (tab === 'scan') {
+                setSelectedProduct(null);
+              }
+              setCurrentTab(tab);
+            }}
           />
         )}
         {currentTab === 'cart' && (
@@ -163,6 +212,10 @@ const Index = () => {
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
             onNavigate={setCurrentTab}
+            onViewProduct={(product) => {
+              setSelectedProduct(product);
+              setCurrentTab('product-detail');
+            }}
           />
         )}
         {currentTab === 'weight' && (
