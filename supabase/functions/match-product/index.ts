@@ -75,7 +75,7 @@ serve(async (req) => {
       else {
         const labelWords = normalizedLabel.split(/\s+/);
         const nameWords = productName.split(/\s+/);
-        const overlap = labelWords.filter(word => nameWords.some(nw => nw.includes(word) || word.includes(nw)));
+        const overlap = labelWords.filter((word: string) => nameWords.some((nw: string) => nw.includes(word) || word.includes(nw)));
         score = (overlap.length / Math.max(labelWords.length, nameWords.length)) * 50;
       }
       
