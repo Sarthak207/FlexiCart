@@ -12,7 +12,7 @@ from ultralytics import YOLO
 import cv2, threading, time, logging, json
 
 # ---------------- CONFIG ---------------- #
-CAMERA_URL = "http://192.168.1.5:8080/video"  # mobile IP webcam
+CAMERA_URL = "http://10.200.212.15:8080/video"  # mobile IP webcam
 CONFIDENCE_THRESHOLD = 0.5  # Lower threshold for better detection
 RESIZE_WIDTH = 640  # Higher resolution for better detection
 RESIZE_HEIGHT = 480
