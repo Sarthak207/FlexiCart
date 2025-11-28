@@ -216,9 +216,9 @@ class LoadCellESP32:
             print(f"Fatal error: {e}")
 
 # Configuration
-WIFI_SSID = "YOUR_WIFI_SSID"
-WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
-API_ENDPOINT = "http://YOUR_BACKEND_IP:8000/api/weight/update"
+WIFI_SSID = "Ghatiya_clg"
+WIFI_PASSWORD = "1234Sart"
+API_ENDPOINT = "http://0.0.0.0:8000/api/weight/update"
 
 # Main execution
 if __name__ == "__main__":
